@@ -12,7 +12,6 @@
     <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        /* Estilos customizados para uma aparência melhor */
         body { font-family: 'Inter', sans-serif; background-color: #f0f2f5; }
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         .loader { border-top-color: #3498db; -webkit-animation: spin 1s linear infinite; animation: spin 1s linear infinite; }
@@ -44,7 +43,8 @@
         where,
         getDocs,
         serverTimestamp,
-        writeBatch
+        writeBatch,
+        updateDoc
       } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
       // =================================================================================
@@ -63,7 +63,7 @@
       // =================================================================================
       // COLE AQUI A NOVA URL DA SUA API (IMPLANTAÇÃO DO SCRIPT COM FORMDATA)
       // =================================================================================
-      const IMAGE_API_URL = 'https://script.google.com/macros/s/AKfycbyE7jqSIXNJgGpDG5hrPjfCAtIhmkMI7ylPCVkK17E9uQJmhovuK4oAEbDMCz-c7TU3oA/exec';
+      const IMAGE_API_URL = 'https://script.google.com/macros/s/AKfycbziSMvcWYYTm6uxRMUQwmaSgfCBI4L81HrI61DM4WvGKwC6z5hdhQjnfLw3-jYwd5OVAw/exec';
 
       // Inicialização do Firebase
       const app = initializeApp(firebaseConfig);
@@ -109,7 +109,7 @@
 
       // Componente Principal
       function App() {
-        const [view, setView] = React.useState('loading'); // loading, login, register, home, audit, history
+        const [view, setView] = React.useState('loading'); // loading, login, register, home, audit, history, account
         const [user, setUser] = React.useState(null);
         const [userData, setUserData] = React.useState(null);
         const [error, setError] = React.useState('');
@@ -154,6 +154,8 @@
               return <AuditForm userData={userData} setView={setView} />;
             case 'history':
               return <HistoryPage userData={userData} setView={setView} />;
+            case 'account':
+              return <AccountPage userData={userData} setUserData={setUserData} setView={setView} />;
             default:
               return <LoginPage setView={setView} setError={setError} setLoading={setLoading} />;
           }
@@ -168,7 +170,7 @@
         );
       }
       
-      function LoginPage({ setView, setError, setLoading }) { /* ...código inalterado... */ 
+      function LoginPage({ setView, setError, setLoading }) {
         const [email, setEmail] = React.useState('');
         const [password, setPassword] = React.useState('');
 
@@ -212,7 +214,7 @@
         );
       }
 
-      function RegisterPage({ setView, setError, setLoading }) { /* ...código inalterado... */ 
+      function RegisterPage({ setView, setError, setLoading }) {
         const [secret, setSecret] = React.useState('');
         const [isSecretValid, setIsSecretValid] = React.useState(false);
         const [formData, setFormData] = React.useState({
@@ -295,7 +297,7 @@
         );
       }
       
-      function HomePage({ userData, setView, handleLogout }) { /* ...código inalterado... */ 
+      function HomePage({ userData, setView, handleLogout }) {
         const [showMenu, setShowMenu] = React.useState(false);
         return (
             <div className="p-4 md:p-8">
@@ -308,7 +310,7 @@
                         </button>
                         {showMenu && (
                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
-                                <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Ver/Editar Conta</a>
+                                <button onClick={() => { setView('account'); setShowMenu(false); }} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Ver/Editar Conta</button>
                                 <button onClick={handleLogout} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Sair</button>
                             </div>
                         )}
@@ -332,6 +334,64 @@
         );
       }
 
+      function AccountPage({ userData, setUserData, setView }) {
+        const [fullName, setFullName] = React.useState(userData.fullName);
+        const [sector, setSector] = React.useState(userData.sector);
+        const [isSaving, setIsSaving] = React.useState(false);
+        const [message, setMessage] = React.useState('');
+
+        const handleSave = async () => {
+            setIsSaving(true);
+            setMessage('');
+            try {
+                const userRef = doc(db, "users", userData.uid);
+                await updateDoc(userRef, {
+                    fullName: fullName,
+                    sector: sector
+                });
+                // Atualiza o estado local para refletir as mudanças imediatamente
+                setUserData({ ...userData, fullName, sector });
+                setMessage('Dados atualizados com sucesso!');
+            } catch (error) {
+                console.error("Erro ao atualizar dados:", error);
+                setMessage('Falha ao atualizar dados.');
+            } finally {
+                setIsSaving(false);
+            }
+        };
+
+        return (
+            <div className="p-4 md:p-8 max-w-2xl mx-auto">
+                <header className="flex justify-between items-center mb-6">
+                    <h1 className="text-2xl font-bold text-gray-800">Minha Conta</h1>
+                    <button onClick={() => setView('home')} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-lg shadow-sm hover:bg-gray-50">Voltar</button>
+                </header>
+                <div className="bg-white p-8 rounded-xl shadow-lg space-y-6">
+                    <div>
+                        <label className="text-sm font-medium text-gray-600">Nome Completo</label>
+                        <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} className="w-full px-4 py-2 mt-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                     <div>
+                        <label className="text-sm font-medium text-gray-600">Email</label>
+                        <input type="email" value={userData.email} className="w-full px-4 py-2 mt-2 text-base text-gray-500 bg-gray-200 border rounded-lg" disabled />
+                    </div>
+                    <div>
+                        <label className="text-sm font-medium text-gray-600">Setor</label>
+                        <select value={sector} onChange={e => setSector(e.target.value)} className="w-full px-4 py-2 mt-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            {SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                    </div>
+                    <div className="flex justify-end items-center">
+                        {message && <p className="text-sm text-green-600 mr-4">{message}</p>}
+                        <button onClick={handleSave} disabled={isSaving} className="px-6 py-2 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
+                            {isSaving ? 'Salvando...' : 'Salvar Alterações'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+      }
+
       function AuditForm({ userData, setView }) {
         const [entries, setEntries] = React.useState([]);
         const [isSaving, setIsSaving] = React.useState(false);
@@ -342,7 +402,12 @@
                 if (draft && draft.length > 0) {
                     const restoredEntries = draft.map(entry => ({
                         ...entry,
-                        evidences: entry.evidences.map(ev => ({...ev, file: base64ToFile(ev.base64, ev.file.name, ev.file.type)}))
+                        // Na restauração, recriamos o preview, mas o mais importante é o base64
+                        evidences: entry.evidences.map(ev => ({
+                            ...ev, 
+                            file: base64ToFile(ev.base64, ev.file.name, ev.file.type),
+                            preview: URL.createObjectURL(base64ToFile(ev.base64, ev.file.name, ev.file.type))
+                        }))
                     }));
                     setEntries(restoredEntries);
                 } else {
@@ -353,9 +418,13 @@
         
         React.useEffect(() => {
             if (entries.length > 0) {
+                // CORREÇÃO: Salva o base64 completo no rascunho
                 const draftToSave = entries.map(entry => ({
                     ...entry,
-                    evidences: entry.evidences.map(ev => ({...ev, file: {name: ev.file.name, type: ev.file.type}}))
+                    evidences: entry.evidences.map(ev => ({
+                        base64: ev.base64, 
+                        file: {name: ev.file.name, type: ev.file.type}
+                    }))
                 }));
                 saveDraft(draftToSave);
             }
@@ -371,7 +440,7 @@
             return new File([byteArray], filename, { type: mimeType });
         };
 
-        const addEntry = () => { /* ...código inalterado... */ 
+        const addEntry = () => {
              setEntries([...entries, {
                 id: Date.now(),
                 entryNumber: entries.length + 1,
@@ -383,7 +452,8 @@
                 evidences: [] // { file, base64, preview }
             }]);
         };
-        const removeEntry = (indexToRemove) => { /* ...código inalterado... */ 
+
+        const removeEntry = (indexToRemove) => {
             if (window.confirm("Tem certeza que deseja apagar este apontamento?")) {
                 const newEntries = entries.filter((_, index) => index !== indexToRemove);
                 const renumberedEntries = newEntries.map((entry, index) => ({
@@ -393,7 +463,8 @@
                 setEntries(renumberedEntries);
             }
         };
-        const updateEntry = (index, field, value) => { /* ...código inalterado... */ 
+
+        const updateEntry = (index, field, value) => {
             const newEntries = [...entries];
             newEntries[index][field] = value;
             if (field === 'operationalZone') {
@@ -401,7 +472,8 @@
             }
             setEntries(newEntries);
         };
-        const handleImageChange = async (index, event) => { /* ...código inalterado... */ 
+
+        const handleImageChange = async (index, event) => {
             const files = Array.from(event.target.files);
             if (files.length === 0) return;
 
@@ -440,7 +512,8 @@
                 }
             }
         };
-        const removeEvidence = (entryIndex, evidenceIndex) => { /* ...código inalterado... */ 
+
+        const removeEvidence = (entryIndex, evidenceIndex) => {
             const newEntries = [...entries];
             const evidenceToRemove = newEntries[entryIndex].evidences[evidenceIndex];
             URL.revokeObjectURL(evidenceToRemove.preview);
@@ -449,12 +522,8 @@
         };
         
         const saveAudit = async () => {
-            if (entries.length === 0) {
-                setGlobalError("A auditoria precisa ter pelo menos um apontamento.");
-                return;
-            }
-            if (entries.some(e => !e.description)) {
-                setGlobalError("Todos os apontamentos devem ter uma descrição.");
+            if (entries.length === 0 || entries.some(e => !e.description)) {
+                setGlobalError("A auditoria precisa ter pelo menos um apontamento com descrição.");
                 return;
             }
             setIsSaving(true);
@@ -474,40 +543,26 @@
                     let finalEvidenceUrls = {};
                     
                     if (entry.evidences.length > 0) {
-                        // ===============================================
-                        // MUDANÇA PRINCIPAL: USANDO FORMDATA
-                        // ===============================================
                         const formData = new FormData();
                         entry.evidences.forEach((ev, ev_index) => {
-                            // Usamos o File/Blob que já temos guardado
                             formData.append(`evidence_${ev_index + 1}`, ev.file, ev.file.name);
                         });
 
                         const response = await fetch(IMAGE_API_URL, {
                             method: 'POST',
                             body: formData,
-                            // NÃO defina o 'Content-Type'. O navegador fará isso automaticamente
-                            // com o 'boundary' correto para multipart/form-data.
                         });
 
-                        if (!response.ok) {
-                            throw new Error(`A API de imagens retornou um erro: ${response.statusText}`);
-                        }
+                        if (!response.ok) throw new Error(`API de imagens retornou: ${response.statusText}`);
 
                         const result = await response.json();
-                        if (result.status !== 'success') {
-                            throw new Error('Falha ao processar imagens no servidor: ' + result.message);
-                        }
+                        if (result.status !== 'success') throw new Error('API de imagens falhou: ' + result.message);
                         
-                        // Mapeia os IDs retornados de volta para os campos de evidência
                         result.files.forEach(fileInfo => {
-                            // fileInfo.key é 'evidence_1', 'evidence_2', etc.
-                            // fileInfo.id é o ID do ficheiro no Google Drive
                             finalEvidenceUrls[fileInfo.key] = fileInfo.id;
                         });
                     }
 
-                    // Prepara o apontamento para salvar no Firestore, agora com as URLs corretas
                     const entryRef = doc(collection(db, "audits", auditRef.id, "entries"));
                     batch.set(entryRef, {
                         entryId: entryRef.id,
@@ -519,19 +574,18 @@
                         location: entry.location,
                         description: entry.description.toUpperCase(),
                         complement: entry.complement,
-                        evidenceUrls: finalEvidenceUrls // Usamos o objeto populado acima
+                        evidenceUrls: finalEvidenceUrls
                     });
                 }
                 
                 await batch.commit();
-
                 await clearDraft();
                 alert("Auditoria salva com sucesso!");
                 setView('home');
 
             } catch (error) {
                 console.error("Erro ao salvar auditoria:", error);
-                setGlobalError("Ocorreu um erro grave ao salvar. Tente novamente. Detalhes: " + error.message);
+                setGlobalError("Ocorreu um erro grave ao salvar. Detalhes: " + error.message);
             } finally {
                 setIsSaving(false);
             }
@@ -601,29 +655,39 @@
         );
       }
       
-      function HistoryPage({ userData, setView }) { /* ...código inalterado... */ 
+      function HistoryPage({ userData, setView }) {
         const [audits, setAudits] = React.useState([]);
         const [loading, setLoading] = React.useState(true);
         const [filter, setFilter] = React.useState('');
 
+        const fetchAudits = async () => {
+            setLoading(true);
+            let q;
+            if (userData.role === 'admin') {
+                q = query(collection(db, "audits"));
+            } else {
+                q = query(collection(db, "audits"), where("userId", "==", userData.uid));
+            }
+            
+            const querySnapshot = await getDocs(q);
+            const auditsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setAudits(auditsData);
+            setLoading(false);
+        };
+
         React.useEffect(() => {
-            const fetchAudits = async () => {
-                setLoading(true);
-                let q;
-                if (userData.role === 'admin') {
-                    q = query(collection(db, "audits"));
-                } else {
-                    q = query(collection(db, "audits"), where("userId", "==", userData.uid));
-                }
-                
-                const querySnapshot = await getDocs(q);
-                const auditsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                setAudits(auditsData);
-                setLoading(false);
-            };
             fetchAudits();
         }, [userData]);
         
+        const handleStatusChange = async (auditId, newStatus) => {
+            if (confirm(`Tem certeza que deseja alterar o status desta auditoria para "${newStatus}"?`)) {
+                const auditRef = doc(db, "audits", auditId);
+                await updateDoc(auditRef, { status: newStatus });
+                // Recarrega a lista para mostrar a mudança
+                fetchAudits();
+            }
+        };
+
         const exportToCSV = async (auditId = null) => {
             let entriesToExport = [];
             let fileName = 'relatorio_completo_polaraud.csv';
@@ -723,8 +787,15 @@
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">{audit.id}</td>
                                         {userData.role === 'admin' && <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{audit.userFullName}</td>}
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{audit.createdAt ? new Date(audit.createdAt.seconds * 1000).toLocaleDateString('pt-BR') : 'N/A'}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${audit.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>{audit.status}</span></td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${audit.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
+                                            {audit.status === 'pending' ? 'Pendente' : 'Concluída'}
+                                          </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
+                                            {userData.role === 'admin' && audit.status === 'pending' && (
+                                                <button onClick={() => handleStatusChange(audit.id, 'completed')} className="text-green-600 hover:text-green-900">Concluir</button>
+                                            )}
                                             <button onClick={() => exportToCSV(audit.id)} className="text-blue-600 hover:text-blue-900">Exportar CSV</button>
                                         </td>
                                     </tr>
@@ -743,6 +814,5 @@
       const root = ReactDOM.createRoot(container);
       root.render(<App />);
     </script>
-
 </body>
 </html>
