@@ -1,0 +1,237 @@
+/* Estilo Mobile-First */
+:root {
+    --primary-color: #003366;
+    --secondary-color: #f4f4f4;
+    --accent-color: #ff9900;
+    --text-color: #333;
+    --danger-color: #d9534f;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+header {
+    background: var(--primary-color);
+    color: white;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+#user-info {
+    font-size: 0.9rem;
+    text-align: right;
+}
+#user-info span {
+    display: block;
+}
+
+main {
+    padding: 1rem;
+}
+
+section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin-bottom: 1rem;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Forms */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+select,
+textarea {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+#audit-form .entry-description {
+    text-transform: uppercase;
+}
+
+button {
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 0.8rem 1.2rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background: #e68a00;
+}
+
+#logout-button, .remove-evidence-btn {
+    background-color: var(--danger-color);
+}
+#logout-button:hover, .remove-evidence-btn:hover {
+    background-color: #c9302c;
+}
+
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Audit Form */
+.audit-header, .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.entry-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background-color: #f9f9f9;
+}
+
+.entry-card h3 {
+    margin-top: 0;
+    border-bottom: 2px solid var(--accent-color);
+    padding-bottom: 0.5rem;
+}
+
+.evidence-preview {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+.evidence-thumbnail-container {
+    position: relative;
+}
+.evidence-thumbnail {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+.remove-evidence-btn {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    font-size: 12px;
+    line-height: 20px;
+    text-align: center;
+}
+
+
+/* History */
+#audits-list .audit-item {
+    padding: 1rem;
+    border: 1px solid #ddd;
+    margin-bottom: 0.5rem;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.status-indicator {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    margin-left: 1rem;
+}
+.status-completed { background-color: #5cb85c; } /* Verde */
+.status-pending { background-color: #f0ad4e; } /* Amarelo */
+
+#admin-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    background-color: var(--secondary-color);
+    padding: 1rem;
+    border-radius: 4px;
+}
+
+/* Loader */
+#loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    color: white;
+}
+.spinner {
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid var(--accent-color);
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Desktop Styles */
+@media (min-width: 768px) {
+    main {
+        max-width: 800px;
+        margin: 2rem auto;
+    }
+
+    .action-buttons {
+        flex-direction: row;
+    }
+
+    #admin-filters {
+        flex-direction: row;
+        align-items: center;
+    }
+}

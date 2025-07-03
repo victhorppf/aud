@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PolarAUD</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+    <header>
+        <h1>PolarAUD</h1>
+        <div id="user-info" class="hidden">
+            <span id="user-greeting"></span>
+            <span id="user-sector"></span>
+            <div id="account-menu">
+                <button id="logout-button">Sair</button>
+                </div>
+        </div>
+    </header>
+
+    <main>
+        <section id="login-view">
+            <h2>Login</h2>
+            <form id="login-form">
+                <input type="email" id="login-email" placeholder="E-mail" required>
+                <input type="password" id="login-password" placeholder="Senha" required>
+                <button type="submit">Entrar</button>
+            </form>
+            <p>Não tem uma conta? <a href="#" id="show-register-link">Registre-se aqui</a>.</p>
+        </section>
+
+        <section id="register-secret-view" class="hidden">
+             <h2>Acesso ao Registro</h2>
+             <form id="secret-form">
+                 <input type="password" id="register-secret" placeholder="Digite o segredo para registrar" required>
+                 <button type="submit">Verificar</button>
+             </form>
+             <p><a href="#" id="back-to-login-link">Voltar para o Login</a></p>
+        </section>
+
+        <section id="register-view" class="hidden">
+            <h2>Registro de Novo Usuário</h2>
+            <form id="register-form">
+                <input type="text" id="register-username" placeholder="Nome de usuário (ex: nome.sobrenome)" required>
+                <input type="text" id="register-fullname" placeholder="Nome Completo" required>
+                <input type="email" id="register-email" placeholder="E-mail" required>
+                <input type="password" id="register-password" placeholder="Senha (mínimo 6 caracteres)" required>
+                <select id="register-sector" required>
+                    <option value="" disabled selected>Selecione seu Setor</option>
+                    <option value="SESMT">SESMT</option>
+                    <option value="CONSULTORIA">CONSULTORIA</option>
+                    <option value="CONFORMIDADE">CONFORMIDADE</option>
+                    <option value="SEGURANÇA PATRIMONIAL">SEGURANÇA PATRIMONIAL</option>
+                </select>
+                <button type="submit">Registrar</button>
+            </form>
+        </section>
+
+        <section id="home-view" class="hidden">
+            <h2>Página Inicial</h2>
+            <div class="action-buttons">
+                <button id="start-audit-button">Iniciar Nova Auditoria</button>
+                <button id="history-button">Histórico de Auditorias</button>
+            </div>
+        </section>
+
+        <section id="audit-form-view" class="hidden">
+            <div class="audit-header">
+                <h2>Formulário de Auditoria</h2>
+                <button id="add-entry-button">+ Adicionar Novo Apontamento</button>
+            </div>
+            <form id="audit-form">
+                </form>
+            <button id="save-audit-button" class="hidden">Salvar Auditoria</button>
+        </section>
+
+        <section id="history-view" class="hidden">
+            <div class="history-header">
+                 <h2>Histórico de Auditorias</h2>
+                 <button id="back-to-home-button">Voltar</button>
+            </div>
+            <div id="admin-filters" class="hidden">
+                <input type="text" id="filter-user" placeholder="Filtrar por nome do auditor">
+                <input type="date" id="filter-date">
+                <select id="filter-sector">
+                    <option value="">Todos os Setores</option>
+                    <option value="SESMT">SESMT</option>
+                    <option value="CONSULTORIA">CONSULTORIA</option>
+                    <option value="CONFORMIDADE">CONFORMIDADE</option>
+                    <option value="SEGURANÇA PATRIMONIAL">SEGURANÇA PATRIMONIAL</option>
+                </select>
+                <button id="apply-filters-button">Aplicar Filtros</button>
+            </div>
+            <div id="export-buttons">
+                </div>
+            <div id="audits-list"></div>
+        </section>
+    </main>
+    
+    <div id="loader" class="hidden">
+        <div class="spinner"></div>
+        <p id="loader-message">Carregando...</p>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js"></script>
+    
+    <script src="app.js"></script>
+</body>
+</html>
