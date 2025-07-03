@@ -4,18 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PolarAUD - Sistema de Auditoria</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <!-- Babel para JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Biblioteca para compressão de imagem -->
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.1/dist/browser-image-compression.js"></script>
-    <!-- Biblioteca para IndexedDB (simplificada) -->
     <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
-    <!-- Font Awesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         /* Estilos customizados para uma aparência melhor */
@@ -67,7 +61,7 @@
       };
 
       // =================================================================================
-      // COLE AQUI A URL DO SEU SCRIPT DO GOOGLE APPS
+      // COLE AQUI A NOVA URL DA SUA API (IMPLANTAÇÃO DO SCRIPT COM FORMDATA)
       // =================================================================================
       const IMAGE_API_URL = 'https://script.google.com/macros/s/AKfycbyE7jqSIXNJgGpDG5hrPjfCAtIhmkMI7ylPCVkK17E9uQJmhovuK4oAEbDMCz-c7TU3oA/exec';
 
@@ -130,7 +124,6 @@
                 setUserData(userDoc.data());
                 setView('home');
               } else {
-                // Caso raro: usuário autenticado mas sem dados no firestore
                 setView('login');
               }
             } else {
@@ -175,9 +168,7 @@
         );
       }
       
-      // Componentes de Tela
-      
-      function LoginPage({ setView, setError, setLoading }) {
+      function LoginPage({ setView, setError, setLoading }) { /* ...código inalterado... */ 
         const [email, setEmail] = React.useState('');
         const [password, setPassword] = React.useState('');
 
@@ -191,7 +182,6 @@
             setError('');
             try {
                 await signInWithEmailAndPassword(auth, email, password);
-                // O onAuthStateChanged vai cuidar de redirecionar
             } catch (err) {
                 setError("Falha no login. Verifique suas credenciais.");
                 console.error(err);
@@ -222,7 +212,7 @@
         );
       }
 
-      function RegisterPage({ setView, setError, setLoading }) {
+      function RegisterPage({ setView, setError, setLoading }) { /* ...código inalterado... */ 
         const [secret, setSecret] = React.useState('');
         const [isSecretValid, setIsSecretValid] = React.useState(false);
         const [formData, setFormData] = React.useState({
@@ -263,7 +253,6 @@
                     sector: formData.sector,
                     role: 'auditor' // Papel padrão
                 });
-                // O onAuthStateChanged vai cuidar de redirecionar
             } catch (err) {
                 setError("Falha no registro: " + err.message);
                 console.error(err);
@@ -305,8 +294,8 @@
             </div>
         );
       }
-
-      function HomePage({ userData, setView, handleLogout }) {
+      
+      function HomePage({ userData, setView, handleLogout }) { /* ...código inalterado... */ 
         const [showMenu, setShowMenu] = React.useState(false);
         return (
             <div className="p-4 md:p-8">
@@ -348,30 +337,25 @@
         const [isSaving, setIsSaving] = React.useState(false);
         const [globalError, setGlobalError] = React.useState('');
 
-        // Carregar rascunho do IndexedDB ao montar
         React.useEffect(() => {
             loadDraft().then(draft => {
                 if (draft && draft.length > 0) {
-                    // Recriar blobs a partir de base64 para as miniaturas
                     const restoredEntries = draft.map(entry => ({
                         ...entry,
                         evidences: entry.evidences.map(ev => ({...ev, file: base64ToFile(ev.base64, ev.file.name, ev.file.type)}))
                     }));
                     setEntries(restoredEntries);
                 } else {
-                    // Adiciona um apontamento inicial se não houver rascunho
                     addEntry();
                 }
             });
         }, []);
         
-        // Salvar rascunho no IndexedDB a cada mudança
         React.useEffect(() => {
             if (entries.length > 0) {
-                // Salvar base64 em vez de File object
                 const draftToSave = entries.map(entry => ({
                     ...entry,
-                    evidences: entry.evidences.map(ev => ({...ev, file: {name: ev.file.name, type: ev.file.type}})) // Salva metadados do arquivo
+                    evidences: entry.evidences.map(ev => ({...ev, file: {name: ev.file.name, type: ev.file.type}}))
                 }));
                 saveDraft(draftToSave);
             }
@@ -387,8 +371,8 @@
             return new File([byteArray], filename, { type: mimeType });
         };
 
-        const addEntry = () => {
-            setEntries([...entries, {
+        const addEntry = () => { /* ...código inalterado... */ 
+             setEntries([...entries, {
                 id: Date.now(),
                 entryNumber: entries.length + 1,
                 auditedEntity: AUDITED_ENTITIES[0],
@@ -399,11 +383,9 @@
                 evidences: [] // { file, base64, preview }
             }]);
         };
-
-        const removeEntry = (indexToRemove) => {
+        const removeEntry = (indexToRemove) => { /* ...código inalterado... */ 
             if (window.confirm("Tem certeza que deseja apagar este apontamento?")) {
                 const newEntries = entries.filter((_, index) => index !== indexToRemove);
-                // Re-numerar os apontamentos restantes
                 const renumberedEntries = newEntries.map((entry, index) => ({
                     ...entry,
                     entryNumber: index + 1
@@ -411,18 +393,15 @@
                 setEntries(renumberedEntries);
             }
         };
-
-        const updateEntry = (index, field, value) => {
+        const updateEntry = (index, field, value) => { /* ...código inalterado... */ 
             const newEntries = [...entries];
             newEntries[index][field] = value;
-            // Se a zona operacional mudar, reseta o local
             if (field === 'operationalZone') {
                 newEntries[index]['location'] = ZONES[value][0];
             }
             setEntries(newEntries);
         };
-        
-        const handleImageChange = async (index, event) => {
+        const handleImageChange = async (index, event) => { /* ...código inalterado... */ 
             const files = Array.from(event.target.files);
             if (files.length === 0) return;
 
@@ -461,11 +440,10 @@
                 }
             }
         };
-        
-        const removeEvidence = (entryIndex, evidenceIndex) => {
+        const removeEvidence = (entryIndex, evidenceIndex) => { /* ...código inalterado... */ 
             const newEntries = [...entries];
             const evidenceToRemove = newEntries[entryIndex].evidences[evidenceIndex];
-            URL.revokeObjectURL(evidenceToRemove.preview); // Libera memória
+            URL.revokeObjectURL(evidenceToRemove.preview);
             newEntries[entryIndex].evidences.splice(evidenceIndex, 1);
             setEntries(newEntries);
         };
@@ -483,46 +461,53 @@
             setGlobalError('');
 
             try {
-                // 1. Criar o documento de auditoria principal para obter um ID
                 const auditRef = await addDoc(collection(db, "audits"), {
                     userId: userData.uid,
                     userFullName: userData.fullName,
                     createdAt: serverTimestamp(),
-                    status: "pending" // Status inicial
+                    status: "pending"
                 });
 
                 const batch = writeBatch(db);
 
-                // 2. Iterar sobre cada apontamento
                 for (const [index, entry] of entries.entries()) {
-                    let evidenceUrls = {};
+                    let finalEvidenceUrls = {};
                     
-                    // 2a. Enviar imagens para a API do Google Apps Script
                     if (entry.evidences.length > 0) {
-                        const imagePayload = entry.evidences.map(ev => ({
-                            filename: ev.file.name,
-                            base64: ev.base64,
-                            mimeType: ev.file.type
-                        }));
+                        // ===============================================
+                        // MUDANÇA PRINCIPAL: USANDO FORMDATA
+                        // ===============================================
+                        const formData = new FormData();
+                        entry.evidences.forEach((ev, ev_index) => {
+                            // Usamos o File/Blob que já temos guardado
+                            formData.append(`evidence_${ev_index + 1}`, ev.file, ev.file.name);
+                        });
 
                         const response = await fetch(IMAGE_API_URL, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Apps Script espera text/plain
-                            body: JSON.stringify({ images: imagePayload }),
-                            mode: 'cors'
+                            body: formData,
+                            // NÃO defina o 'Content-Type'. O navegador fará isso automaticamente
+                            // com o 'boundary' correto para multipart/form-data.
                         });
+
+                        if (!response.ok) {
+                            throw new Error(`A API de imagens retornou um erro: ${response.statusText}`);
+                        }
 
                         const result = await response.json();
                         if (result.status !== 'success') {
-                            throw new Error('Falha ao enviar imagens: ' + result.message);
+                            throw new Error('Falha ao processar imagens no servidor: ' + result.message);
                         }
                         
-                        result.urls.forEach((urlObj, i) => {
-                            evidenceUrls[`evidence_${i + 1}`] = urlObj.id; // Salva o ID do arquivo
+                        // Mapeia os IDs retornados de volta para os campos de evidência
+                        result.files.forEach(fileInfo => {
+                            // fileInfo.key é 'evidence_1', 'evidence_2', etc.
+                            // fileInfo.id é o ID do ficheiro no Google Drive
+                            finalEvidenceUrls[fileInfo.key] = fileInfo.id;
                         });
                     }
 
-                    // 2b. Preparar o documento do apontamento para o batch
+                    // Prepara o apontamento para salvar no Firestore, agora com as URLs corretas
                     const entryRef = doc(collection(db, "audits", auditRef.id, "entries"));
                     batch.set(entryRef, {
                         entryId: entryRef.id,
@@ -534,14 +519,12 @@
                         location: entry.location,
                         description: entry.description.toUpperCase(),
                         complement: entry.complement,
-                        evidenceUrls: evidenceUrls
+                        evidenceUrls: finalEvidenceUrls // Usamos o objeto populado acima
                     });
                 }
                 
-                // 3. Commit do batch
                 await batch.commit();
 
-                // 4. Limpeza e redirecionamento
                 await clearDraft();
                 alert("Auditoria salva com sucesso!");
                 setView('home');
@@ -618,7 +601,7 @@
         );
       }
       
-      function HistoryPage({ userData, setView }) {
+      function HistoryPage({ userData, setView }) { /* ...código inalterado... */ 
         const [audits, setAudits] = React.useState([]);
         const [loading, setLoading] = React.useState(true);
         const [filter, setFilter] = React.useState('');
@@ -646,14 +629,12 @@
             let fileName = 'relatorio_completo_polaraud.csv';
 
             if (auditId) {
-                // Exportar uma auditoria específica
                 const entriesSnapshot = await getDocs(collection(db, "audits", auditId, "entries"));
                 const auditDoc = await getDoc(doc(db, "audits", auditId));
                 const auditData = auditDoc.data();
                 entriesToExport = entriesSnapshot.docs.map(d => ({...d.data(), userFullName: auditData.userFullName}));
                 fileName = `auditoria_${auditId}.csv`;
             } else {
-                // Exportar tudo (para admin)
                 for (const audit of audits) {
                      const entriesSnapshot = await getDocs(collection(db, "audits", audit.id, "entries"));
                      entriesSnapshot.forEach(entryDoc => {
@@ -757,12 +738,9 @@
             </div>
         );
       }
-
-      // Ponto de entrada do React
+      
       const container = document.getElementById('root');
       const root = ReactDOM.createRoot(container);
-      
-      // Renderiza o componente App
       root.render(<App />);
     </script>
 
