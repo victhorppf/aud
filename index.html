@@ -69,7 +69,7 @@
       // =================================================================================
       // COLE AQUI A URL DO SEU SCRIPT DO GOOGLE APPS
       // =================================================================================
-      const IMAGE_API_URL = 'COLE_AQUI_A_URL_DO_SEU_SCRIPT';
+      const IMAGE_API_URL = 'https://script.google.com/macros/s/AKfycbzY91wDWITdcRfTdVEsH3VUOClquYDsXZxSfRbh50HFUNvnuDFLDfbnOhgnnKjH9AKx/exec';
 
       // Inicialização do Firebase
       const app = initializeApp(firebaseConfig);
@@ -232,7 +232,7 @@
             password: '',
             sector: SECTORS[0]
         });
-        const SECRET_KEY = "@PolarAUD@";
+        const SECRET_KEY = "@PolarAud@";
 
         const handleSecretCheck = () => {
             if (secret === SECRET_KEY) {
@@ -400,6 +400,18 @@
             }]);
         };
 
+        const removeEntry = (indexToRemove) => {
+            if (window.confirm("Tem certeza que deseja apagar este apontamento?")) {
+                const newEntries = entries.filter((_, index) => index !== indexToRemove);
+                // Re-numerar os apontamentos restantes
+                const renumberedEntries = newEntries.map((entry, index) => ({
+                    ...entry,
+                    entryNumber: index + 1
+                }));
+                setEntries(renumberedEntries);
+            }
+        };
+
         const updateEntry = (index, field, value) => {
             const newEntries = [...entries];
             newEntries[index][field] = value;
@@ -459,6 +471,10 @@
         };
         
         const saveAudit = async () => {
+            if (entries.length === 0) {
+                setGlobalError("A auditoria precisa ter pelo menos um apontamento.");
+                return;
+            }
             if (entries.some(e => !e.description)) {
                 setGlobalError("Todos os apontamentos devem ter uma descrição.");
                 return;
@@ -549,8 +565,13 @@
 
                 <div className="space-y-6">
                     {entries.map((entry, index) => (
-                        <div key={entry.id} className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500">
-                            <h3 className="text-lg font-semibold text-gray-700 mb-4">Apontamento #{entry.entryNumber}</h3>
+                        <div key={entry.id} className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500 relative">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-lg font-semibold text-gray-700">Apontamento #{entry.entryNumber}</h3>
+                                <button onClick={() => removeEntry(index)} className="text-red-500 hover:text-red-700">
+                                    <i className="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <input type="text" value={`Auditor: ${userData.fullName}`} className="w-full p-2 bg-gray-100 rounded-md" disabled />
                                 <input type="text" value={`Setor Técnico: ${userData.sector}`} className="w-full p-2 bg-gray-100 rounded-md" disabled />
