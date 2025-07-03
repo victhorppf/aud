@@ -29,7 +29,7 @@
 <body>
     <div id="root"></div>
 
-    <script type="module">
+    <script type="text/babel" data-type="module">
       // Importações do Firebase
       import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
       import { 
@@ -69,7 +69,7 @@
       // =================================================================================
       // COLE AQUI A URL DO SEU SCRIPT DO GOOGLE APPS
       // =================================================================================
-      const IMAGE_API_URL = 'https://script.google.com/macros/s/AKfycbzY91wDWITdcRfTdVEsH3VUOClquYDsXZxSfRbh50HFUNvnuDFLDfbnOhgnnKjH9AKx/exec';
+      const IMAGE_API_URL = 'COLE_AQUI_A_URL_DO_SEU_SCRIPT';
 
       // Inicialização do Firebase
       const app = initializeApp(firebaseConfig);
@@ -232,7 +232,7 @@
             password: '',
             sector: SECTORS[0]
         });
-        const SECRET_KEY = "@PolarAud@";
+        const SECRET_KEY = "@PolarAUD@";
 
         const handleSecretCheck = () => {
             if (secret === SECRET_KEY) {
@@ -736,18 +736,13 @@
             </div>
         );
       }
-    </script>
-    
-    <script type="text/babel" data-type="module">
-        // Ponto de entrada do React
-        const container = document.getElementById('root');
-        const root = ReactDOM.createRoot(container);
 
-        // Importações necessárias para o escopo do Babel
-        const { useState, useEffect } = React;
-        
-        // Renderiza o componente App
-        root.render(<App />);
+      // Ponto de entrada do React
+      const container = document.getElementById('root');
+      const root = ReactDOM.createRoot(container);
+      
+      // Renderiza o componente App
+      root.render(<App />);
     </script>
 
 </body>
