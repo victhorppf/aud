@@ -1,113 +1,754 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PolarAUD</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PolarAUD - Sistema de Auditoria</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel para JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Biblioteca para compressão de imagem -->
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.1/dist/browser-image-compression.js"></script>
+    <!-- Biblioteca para IndexedDB (simplificada) -->
+    <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* Estilos customizados para uma aparência melhor */
+        body { font-family: 'Inter', sans-serif; background-color: #f0f2f5; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        .loader { border-top-color: #3498db; -webkit-animation: spin 1s linear infinite; animation: spin 1s linear infinite; }
+        @-webkit-keyframes spin { 0% { -webkit-transform: rotate(0deg); } 100% { -webkit-transform: rotate(360deg); } }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
 </head>
 <body>
-    <header>
-        <h1>PolarAUD</h1>
-        <div id="user-info" class="hidden">
-            <span id="user-greeting"></span>
-            <span id="user-sector"></span>
-            <div id="account-menu">
-                <button id="logout-button">Sair</button>
+    <div id="root"></div>
+
+    <script type="module">
+      // Importações do Firebase
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+      import { 
+        getAuth, 
+        onAuthStateChanged,
+        createUserWithEmailAndPassword,
+        signInWithEmailAndPassword,
+        signOut
+      } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+      import { 
+        getFirestore, 
+        doc, 
+        setDoc, 
+        getDoc,
+        addDoc,
+        collection,
+        query,
+        where,
+        getDocs,
+        serverTimestamp,
+        writeBatch
+      } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+
+      // =================================================================================
+      // COLE AQUI A CONFIGURAÇÃO DO SEU FIREBASE
+      // =================================================================================
+      const firebaseConfig = {
+        apiKey: "AIzaSyABacusGuCXnA3b0uLyQPKgiRXUHiqbXC8", // USE A SUA CHAVE
+        authDomain: "polaraud-app.firebaseapp.com",
+        projectId: "polaraud-app",
+        storageBucket: "polaraud-app.appspot.com",
+        messagingSenderId: "891816680442",
+        appId: "1:891816680442:web:0017a9878182374b79e243",
+        measurementId: "G-SQBWLWQH7K"
+      };
+
+      // =================================================================================
+      // COLE AQUI A URL DO SEU SCRIPT DO GOOGLE APPS
+      // =================================================================================
+      const IMAGE_API_URL = 'https://script.google.com/macros/s/AKfycbzY91wDWITdcRfTdVEsH3VUOClquYDsXZxSfRbh50HFUNvnuDFLDfbnOhgnnKjH9AKx/exec';
+
+      // Inicialização do Firebase
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+
+      // Configuração do IndexedDB
+      const DBNAME = 'PolarAUD-DB';
+      const STORENAME = 'auditDrafts';
+      const DRAFT_KEY = 'current_audit_draft';
+
+      async function openDb() {
+        return idb.openDB(DBNAME, 1, {
+          upgrade(db) {
+            db.createObjectStore(STORENAME);
+          },
+        });
+      }
+
+      async function saveDraft(draft) {
+        const db = await openDb();
+        await db.put(STORENAME, draft, DRAFT_KEY);
+      }
+
+      async function loadDraft() {
+        const db = await openDb();
+        return db.get(STORENAME, DRAFT_KEY);
+      }
+
+      async function clearDraft() {
+        const db = await openDb();
+        await db.delete(STORENAME, DRAFT_KEY);
+      }
+      
+      // Dados estáticos da aplicação
+      const SECTORS = ["SESMT", "OPERAÇÕES", "MANUTENÇÃO", "ADMINISTRATIVO"];
+      const AUDITED_ENTITIES = ["RFB", "ANVISA", "MAPA", "IBAMA"];
+      const ZONES = {
+        "ZONA 1": ["PÁTIO 1", "ARMAZÉM 1", "ESCRITÓRIO 1"],
+        "ZONA 2": ["PÁTIO 2", "DOCAS 1-5", "REFEITÓRIO"],
+        "ZONA 3": ["ESTACIONAMENTO DIRETORIA", "PORTARIA PRINCIPAL"],
+      };
+
+      // Componente Principal
+      function App() {
+        const [view, setView] = React.useState('loading'); // loading, login, register, home, audit, history
+        const [user, setUser] = React.useState(null);
+        const [userData, setUserData] = React.useState(null);
+        const [error, setError] = React.useState('');
+        const [loading, setLoading] = React.useState(false);
+
+        React.useEffect(() => {
+          const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            if (currentUser) {
+              setUser(currentUser);
+              const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+              if (userDoc.exists()) {
+                setUserData(userDoc.data());
+                setView('home');
+              } else {
+                // Caso raro: usuário autenticado mas sem dados no firestore
+                setView('login');
+              }
+            } else {
+              setUser(null);
+              setUserData(null);
+              setView('login');
+            }
+          });
+          return () => unsubscribe();
+        }, []);
+
+        const handleLogout = async () => {
+          await signOut(auth);
+          setView('login');
+        };
+
+        const renderView = () => {
+          switch (view) {
+            case 'loading':
+              return <div className="flex justify-center items-center h-screen"><div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div></div>;
+            case 'login':
+              return <LoginPage setView={setView} setError={setError} setLoading={setLoading} />;
+            case 'register':
+              return <RegisterPage setView={setView} setError={setError} setLoading={setLoading} />;
+            case 'home':
+              return <HomePage userData={userData} setView={setView} handleLogout={handleLogout} />;
+            case 'audit':
+              return <AuditForm userData={userData} setView={setView} />;
+            case 'history':
+              return <HistoryPage userData={userData} setView={setView} />;
+            default:
+              return <LoginPage setView={setView} setError={setError} setLoading={setLoading} />;
+          }
+        };
+
+        return (
+          <div className="min-h-screen bg-gray-100">
+            {loading && <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"><div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div><p className="ml-4 text-white">Processando...</p></div>}
+            {error && <div className="fixed top-5 right-5 bg-red-500 text-white p-3 rounded-lg shadow-lg animate-pulse" onClick={() => setError('')}>{error}</div>}
+            {renderView()}
+          </div>
+        );
+      }
+      
+      // Componentes de Tela
+      
+      function LoginPage({ setView, setError, setLoading }) {
+        const [email, setEmail] = React.useState('');
+        const [password, setPassword] = React.useState('');
+
+        const handleLogin = async (e) => {
+            e.preventDefault();
+            if (!email || !password) {
+                setError("Por favor, preencha todos os campos.");
+                return;
+            }
+            setLoading(true);
+            setError('');
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                // O onAuthStateChanged vai cuidar de redirecionar
+            } catch (err) {
+                setError("Falha no login. Verifique suas credenciais.");
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-gray-50">
+                <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg">
+                    <h1 className="text-3xl font-bold text-center text-gray-800">PolarAUD</h1>
+                    <p className="text-center text-gray-500">Acesse sua conta de auditoria</p>
+                    <form onSubmit={handleLogin} className="space-y-6">
+                        <div>
+                            <label className="text-sm font-medium text-gray-600">Email</label>
+                            <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-2 mt-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="seu.email@exemplo.com" />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-600">Senha</label>
+                            <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-2 mt-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="********" />
+                        </div>
+                        <button type="submit" className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-300">Entrar</button>
+                    </form>
+                    <p className="text-sm text-center text-gray-500">Não tem uma conta? <button onClick={() => setView('register')} className="font-medium text-blue-600 hover:underline">Registre-se</button></p>
                 </div>
-        </div>
-    </header>
-
-    <main>
-        <section id="login-view">
-            <h2>Login</h2>
-            <form id="login-form">
-                <input type="email" id="login-email" placeholder="E-mail" required>
-                <input type="password" id="login-password" placeholder="Senha" required>
-                <button type="submit">Entrar</button>
-            </form>
-            <p>Não tem uma conta? <a href="#" id="show-register-link">Registre-se aqui</a>.</p>
-        </section>
-
-        <section id="register-secret-view" class="hidden">
-             <h2>Acesso ao Registro</h2>
-             <form id="secret-form">
-                 <input type="password" id="register-secret" placeholder="Digite o segredo para registrar" required>
-                 <button type="submit">Verificar</button>
-             </form>
-             <p><a href="#" id="back-to-login-link">Voltar para o Login</a></p>
-        </section>
-
-        <section id="register-view" class="hidden">
-            <h2>Registro de Novo Usuário</h2>
-            <form id="register-form">
-                <input type="text" id="register-username" placeholder="Nome de usuário (ex: nome.sobrenome)" required>
-                <input type="text" id="register-fullname" placeholder="Nome Completo" required>
-                <input type="email" id="register-email" placeholder="E-mail" required>
-                <input type="password" id="register-password" placeholder="Senha (mínimo 6 caracteres)" required>
-                <select id="register-sector" required>
-                    <option value="" disabled selected>Selecione seu Setor</option>
-                    <option value="SESMT">SESMT</option>
-                    <option value="CONSULTORIA">CONSULTORIA</option>
-                    <option value="CONFORMIDADE">CONFORMIDADE</option>
-                    <option value="SEGURANÇA PATRIMONIAL">SEGURANÇA PATRIMONIAL</option>
-                </select>
-                <button type="submit">Registrar</button>
-            </form>
-        </section>
-
-        <section id="home-view" class="hidden">
-            <h2>Página Inicial</h2>
-            <div class="action-buttons">
-                <button id="start-audit-button">Iniciar Nova Auditoria</button>
-                <button id="history-button">Histórico de Auditorias</button>
             </div>
-        </section>
+        );
+      }
 
-        <section id="audit-form-view" class="hidden">
-            <div class="audit-header">
-                <h2>Formulário de Auditoria</h2>
-                <button id="add-entry-button">+ Adicionar Novo Apontamento</button>
-            </div>
-            <form id="audit-form">
-                </form>
-            <button id="save-audit-button" class="hidden">Salvar Auditoria</button>
-        </section>
+      function RegisterPage({ setView, setError, setLoading }) {
+        const [secret, setSecret] = React.useState('');
+        const [isSecretValid, setIsSecretValid] = React.useState(false);
+        const [formData, setFormData] = React.useState({
+            username: '',
+            fullName: '',
+            email: '',
+            password: '',
+            sector: SECTORS[0]
+        });
+        const SECRET_KEY = "@PolarAud@";
 
-        <section id="history-view" class="hidden">
-            <div class="history-header">
-                 <h2>Histórico de Auditorias</h2>
-                 <button id="back-to-home-button">Voltar</button>
-            </div>
-            <div id="admin-filters" class="hidden">
-                <input type="text" id="filter-user" placeholder="Filtrar por nome do auditor">
-                <input type="date" id="filter-date">
-                <select id="filter-sector">
-                    <option value="">Todos os Setores</option>
-                    <option value="SESMT">SESMT</option>
-                    <option value="CONSULTORIA">CONSULTORIA</option>
-                    <option value="CONFORMIDADE">CONFORMIDADE</option>
-                    <option value="SEGURANÇA PATRIMONIAL">SEGURANÇA PATRIMONIAL</option>
-                </select>
-                <button id="apply-filters-button">Aplicar Filtros</button>
-            </div>
-            <div id="export-buttons">
+        const handleSecretCheck = () => {
+            if (secret === SECRET_KEY) {
+                setIsSecretValid(true);
+                setError('');
+            } else {
+                setError("Segredo incorreto!");
+            }
+        };
+
+        const handleChange = (e) => {
+            setFormData({ ...formData, [e.target.name]: e.target.value });
+        };
+        
+        const handleRegister = async (e) => {
+            e.preventDefault();
+            setLoading(true);
+            setError('');
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+                const user = userCredential.user;
+                
+                await setDoc(doc(db, "users", user.uid), {
+                    uid: user.uid,
+                    username: formData.username,
+                    fullName: formData.fullName,
+                    email: formData.email,
+                    sector: formData.sector,
+                    role: 'auditor' // Papel padrão
+                });
+                // O onAuthStateChanged vai cuidar de redirecionar
+            } catch (err) {
+                setError("Falha no registro: " + err.message);
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (!isSecretValid) {
+            return (
+                <div className="flex items-center justify-center min-h-screen bg-gray-50">
+                    <div className="w-full max-w-sm p-8 space-y-4 bg-white rounded-xl shadow-lg">
+                        <h2 className="text-2xl font-bold text-center text-gray-800">Acesso ao Registro</h2>
+                        <p className="text-center text-gray-500">Insira o segredo para continuar.</p>
+                        <input type="password" value={secret} onChange={e => setSecret(e.target.value)} className="w-full px-4 py-2 mt-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Segredo de acesso" />
+                        <button onClick={handleSecretCheck} className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700">Verificar</button>
+                        <button onClick={() => setView('login')} className="w-full mt-2 text-center text-blue-600 hover:underline">Voltar para o Login</button>
+                    </div>
                 </div>
-            <div id="audits-list"></div>
-        </section>
-    </main>
-    
-    <div id="loader" class="hidden">
-        <div class="spinner"></div>
-        <p id="loader-message">Carregando...</p>
-    </div>
+            );
+        }
 
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js"></script>
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-gray-50 py-12">
+                <div className="w-full max-w-lg p-8 space-y-6 bg-white rounded-xl shadow-lg">
+                    <h1 className="text-3xl font-bold text-center text-gray-800">Registro de Novo Usuário</h1>
+                    <form onSubmit={handleRegister} className="space-y-4">
+                        <input name="username" onChange={handleChange} placeholder="Nome de usuário" className="w-full px-4 py-2 bg-gray-100 border rounded-lg" required />
+                        <input name="fullName" onChange={handleChange} placeholder="Nome Completo" className="w-full px-4 py-2 bg-gray-100 border rounded-lg" required />
+                        <input name="email" type="email" onChange={handleChange} placeholder="E-mail" className="w-full px-4 py-2 bg-gray-100 border rounded-lg" required />
+                        <input name="password" type="password" onChange={handleChange} placeholder="Senha (mínimo 6 caracteres)" className="w-full px-4 py-2 bg-gray-100 border rounded-lg" required />
+                        <select name="sector" onChange={handleChange} className="w-full px-4 py-2 bg-gray-100 border rounded-lg">
+                            {SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                        <button type="submit" className="w-full px-4 py-3 font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700">Registrar</button>
+                    </form>
+                     <button onClick={() => setView('login')} className="w-full mt-2 text-center text-blue-600 hover:underline">Já tenho uma conta</button>
+                </div>
+            </div>
+        );
+      }
+
+      function HomePage({ userData, setView, handleLogout }) {
+        const [showMenu, setShowMenu] = React.useState(false);
+        return (
+            <div className="p-4 md:p-8">
+                <header className="flex justify-between items-center mb-8">
+                    <h1 className="text-2xl md:text-3xl font-bold text-gray-800">PolarAUD</h1>
+                    <div className="relative">
+                        <button onClick={() => setShowMenu(!showMenu)} className="flex items-center space-x-2 p-2 rounded-full bg-white shadow">
+                            <span className="font-medium text-gray-700 hidden md:block">{userData?.fullName}</span>
+                            <i className="fas fa-user-circle text-2xl text-gray-500"></i>
+                        </button>
+                        {showMenu && (
+                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
+                                <a href="#" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Ver/Editar Conta</a>
+                                <button onClick={handleLogout} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Sair</button>
+                            </div>
+                        )}
+                    </div>
+                </header>
+                <main className="bg-white p-6 rounded-xl shadow-lg">
+                    <h2 className="text-xl font-semibold text-gray-700">Bem-vindo(a), {userData?.fullName}!</h2>
+                    <p className="text-gray-500 mb-8">Setor: {userData?.sector}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <button onClick={() => setView('audit')} className="flex flex-col items-center justify-center p-8 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105">
+                            <i className="fas fa-plus-circle text-4xl mb-2"></i>
+                            <span className="text-lg font-semibold">Iniciar Nova Auditoria</span>
+                        </button>
+                        <button onClick={() => setView('history')} className="flex flex-col items-center justify-center p-8 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-transform transform hover:scale-105">
+                            <i className="fas fa-history text-4xl mb-2"></i>
+                            <span className="text-lg font-semibold">Histórico de Auditorias</span>
+                        </button>
+                    </div>
+                </main>
+            </div>
+        );
+      }
+
+      function AuditForm({ userData, setView }) {
+        const [entries, setEntries] = React.useState([]);
+        const [isSaving, setIsSaving] = React.useState(false);
+        const [globalError, setGlobalError] = React.useState('');
+
+        // Carregar rascunho do IndexedDB ao montar
+        React.useEffect(() => {
+            loadDraft().then(draft => {
+                if (draft && draft.length > 0) {
+                    // Recriar blobs a partir de base64 para as miniaturas
+                    const restoredEntries = draft.map(entry => ({
+                        ...entry,
+                        evidences: entry.evidences.map(ev => ({...ev, file: base64ToFile(ev.base64, ev.file.name, ev.file.type)}))
+                    }));
+                    setEntries(restoredEntries);
+                } else {
+                    // Adiciona um apontamento inicial se não houver rascunho
+                    addEntry();
+                }
+            });
+        }, []);
+        
+        // Salvar rascunho no IndexedDB a cada mudança
+        React.useEffect(() => {
+            if (entries.length > 0) {
+                // Salvar base64 em vez de File object
+                const draftToSave = entries.map(entry => ({
+                    ...entry,
+                    evidences: entry.evidences.map(ev => ({...ev, file: {name: ev.file.name, type: ev.file.type}})) // Salva metadados do arquivo
+                }));
+                saveDraft(draftToSave);
+            }
+        }, [entries]);
+
+        const base64ToFile = (base64, filename, mimeType) => {
+            const byteCharacters = atob(base64.split(',')[1]);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            return new File([byteArray], filename, { type: mimeType });
+        };
+
+        const addEntry = () => {
+            setEntries([...entries, {
+                id: Date.now(),
+                entryNumber: entries.length + 1,
+                auditedEntity: AUDITED_ENTITIES[0],
+                operationalZone: Object.keys(ZONES)[0],
+                location: ZONES[Object.keys(ZONES)[0]][0],
+                description: '',
+                complement: '',
+                evidences: [] // { file, base64, preview }
+            }]);
+        };
+
+        const updateEntry = (index, field, value) => {
+            const newEntries = [...entries];
+            newEntries[index][field] = value;
+            // Se a zona operacional mudar, reseta o local
+            if (field === 'operationalZone') {
+                newEntries[index]['location'] = ZONES[value][0];
+            }
+            setEntries(newEntries);
+        };
+        
+        const handleImageChange = async (index, event) => {
+            const files = Array.from(event.target.files);
+            if (files.length === 0) return;
+
+            const currentEvidences = entries[index].evidences;
+            if (currentEvidences.length + files.length > 3) {
+                alert("Você pode adicionar no máximo 3 evidências.");
+                return;
+            }
+
+            const options = {
+                maxSizeMB: 1,
+                maxWidthOrHeight: 1024,
+                useWebWorker: true
+            };
+
+            for (const file of files) {
+                try {
+                    const compressedFile = await imageCompression(file, options);
+                    const reader = new FileReader();
+                    reader.readAsDataURL(compressedFile);
+                    reader.onloadend = () => {
+                        const base64String = reader.result;
+                        const newEvidence = {
+                            file: compressedFile,
+                            base64: base64String,
+                            preview: URL.createObjectURL(compressedFile)
+                        };
+                        
+                        const newEntries = [...entries];
+                        newEntries[index].evidences.push(newEvidence);
+                        setEntries(newEntries);
+                    };
+                } catch (error) {
+                    console.error("Erro na compressão:", error);
+                    alert("Falha ao processar a imagem.");
+                }
+            }
+        };
+        
+        const removeEvidence = (entryIndex, evidenceIndex) => {
+            const newEntries = [...entries];
+            const evidenceToRemove = newEntries[entryIndex].evidences[evidenceIndex];
+            URL.revokeObjectURL(evidenceToRemove.preview); // Libera memória
+            newEntries[entryIndex].evidences.splice(evidenceIndex, 1);
+            setEntries(newEntries);
+        };
+        
+        const saveAudit = async () => {
+            if (entries.some(e => !e.description)) {
+                setGlobalError("Todos os apontamentos devem ter uma descrição.");
+                return;
+            }
+            setIsSaving(true);
+            setGlobalError('');
+
+            try {
+                // 1. Criar o documento de auditoria principal para obter um ID
+                const auditRef = await addDoc(collection(db, "audits"), {
+                    userId: userData.uid,
+                    userFullName: userData.fullName,
+                    createdAt: serverTimestamp(),
+                    status: "pending" // Status inicial
+                });
+
+                const batch = writeBatch(db);
+
+                // 2. Iterar sobre cada apontamento
+                for (const [index, entry] of entries.entries()) {
+                    let evidenceUrls = {};
+                    
+                    // 2a. Enviar imagens para a API do Google Apps Script
+                    if (entry.evidences.length > 0) {
+                        const imagePayload = entry.evidences.map(ev => ({
+                            filename: ev.file.name,
+                            base64: ev.base64,
+                            mimeType: ev.file.type
+                        }));
+
+                        const response = await fetch(IMAGE_API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Apps Script espera text/plain
+                            body: JSON.stringify({ images: imagePayload }),
+                            mode: 'cors'
+                        });
+
+                        const result = await response.json();
+                        if (result.status !== 'success') {
+                            throw new Error('Falha ao enviar imagens: ' + result.message);
+                        }
+                        
+                        result.urls.forEach((urlObj, i) => {
+                            evidenceUrls[`evidence_${i + 1}`] = urlObj.id; // Salva o ID do arquivo
+                        });
+                    }
+
+                    // 2b. Preparar o documento do apontamento para o batch
+                    const entryRef = doc(collection(db, "audits", auditRef.id, "entries"));
+                    batch.set(entryRef, {
+                        entryId: entryRef.id,
+                        entryNumber: index + 1,
+                        entryTimestamp: serverTimestamp(),
+                        auditedEntity: entry.auditedEntity,
+                        operationalZone: entry.operationalZone,
+                        technicalSector: userData.sector,
+                        location: entry.location,
+                        description: entry.description.toUpperCase(),
+                        complement: entry.complement,
+                        evidenceUrls: evidenceUrls
+                    });
+                }
+                
+                // 3. Commit do batch
+                await batch.commit();
+
+                // 4. Limpeza e redirecionamento
+                await clearDraft();
+                alert("Auditoria salva com sucesso!");
+                setView('home');
+
+            } catch (error) {
+                console.error("Erro ao salvar auditoria:", error);
+                setGlobalError("Ocorreu um erro grave ao salvar. Tente novamente. Detalhes: " + error.message);
+            } finally {
+                setIsSaving(false);
+            }
+        };
+
+        return (
+            <div className="p-4 md:p-8 max-w-4xl mx-auto">
+                <header className="flex justify-between items-center mb-6">
+                    <h1 className="text-2xl font-bold text-gray-800">Nova Auditoria</h1>
+                    <button onClick={() => setView('home')} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-lg shadow-sm hover:bg-gray-50">Voltar</button>
+                </header>
+                
+                {globalError && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">{globalError}</div>}
+
+                <div className="space-y-6">
+                    {entries.map((entry, index) => (
+                        <div key={entry.id} className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500">
+                            <h3 className="text-lg font-semibold text-gray-700 mb-4">Apontamento #{entry.entryNumber}</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <input type="text" value={`Auditor: ${userData.fullName}`} className="w-full p-2 bg-gray-100 rounded-md" disabled />
+                                <input type="text" value={`Setor Técnico: ${userData.sector}`} className="w-full p-2 bg-gray-100 rounded-md" disabled />
+                                
+                                <select value={entry.auditedEntity} onChange={e => updateEntry(index, 'auditedEntity', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
+                                    {AUDITED_ENTITIES.map(e => <option key={e} value={e}>{e}</option>)}
+                                </select>
+                                <select value={entry.operationalZone} onChange={e => updateEntry(index, 'operationalZone', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
+                                    {Object.keys(ZONES).map(z => <option key={z} value={z}>{z}</option>)}
+                                </select>
+                                <select value={entry.location} onChange={e => updateEntry(index, 'location', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md md:col-span-2">
+                                    {ZONES[entry.operationalZone].map(l => <option key={l} value={l}>{l}</option>)}
+                                </select>
+
+                                <textarea value={entry.description} onChange={e => updateEntry(index, 'description', e.target.value)} placeholder="APONTAMENTO (EM MAIÚSCULAS)" className="w-full p-2 bg-gray-50 border rounded-md md:col-span-2 h-24 uppercase" required></textarea>
+                                <textarea value={entry.complement} onChange={e => updateEntry(index, 'complement', e.target.value)} placeholder="Complemento (opcional)" className="w-full p-2 bg-gray-50 border rounded-md md:col-span-2 h-20"></textarea>
+                                
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Evidências (até 3 imagens)</label>
+                                    <input type="file" accept="image/*" multiple onChange={(e) => handleImageChange(index, e)} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                                    <div className="mt-4 flex flex-wrap gap-4">
+                                        {entry.evidences.map((ev, evIndex) => (
+                                            <div key={evIndex} className="relative">
+                                                <img src={ev.preview} className="w-24 h-24 object-cover rounded-lg shadow" />
+                                                <button onClick={() => removeEvidence(index, evIndex)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">&times;</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="mt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <button onClick={addEntry} className="w-full md:w-auto px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors">
+                        <i className="fas fa-plus mr-2"></i> Adicionar Novo Apontamento
+                    </button>
+                    <button onClick={saveAudit} disabled={isSaving} className="w-full md:w-auto px-8 py-4 bg-blue-700 text-white font-bold rounded-lg hover:bg-blue-800 disabled:bg-gray-400 transition-colors text-lg">
+                        {isSaving ? 'Salvando...' : 'Salvar Auditoria Completa'}
+                    </button>
+                </div>
+            </div>
+        );
+      }
+      
+      function HistoryPage({ userData, setView }) {
+        const [audits, setAudits] = React.useState([]);
+        const [loading, setLoading] = React.useState(true);
+        const [filter, setFilter] = React.useState('');
+
+        React.useEffect(() => {
+            const fetchAudits = async () => {
+                setLoading(true);
+                let q;
+                if (userData.role === 'admin') {
+                    q = query(collection(db, "audits"));
+                } else {
+                    q = query(collection(db, "audits"), where("userId", "==", userData.uid));
+                }
+                
+                const querySnapshot = await getDocs(q);
+                const auditsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                setAudits(auditsData);
+                setLoading(false);
+            };
+            fetchAudits();
+        }, [userData]);
+        
+        const exportToCSV = async (auditId = null) => {
+            let entriesToExport = [];
+            let fileName = 'relatorio_completo_polaraud.csv';
+
+            if (auditId) {
+                // Exportar uma auditoria específica
+                const entriesSnapshot = await getDocs(collection(db, "audits", auditId, "entries"));
+                const auditDoc = await getDoc(doc(db, "audits", auditId));
+                const auditData = auditDoc.data();
+                entriesToExport = entriesSnapshot.docs.map(d => ({...d.data(), userFullName: auditData.userFullName}));
+                fileName = `auditoria_${auditId}.csv`;
+            } else {
+                // Exportar tudo (para admin)
+                for (const audit of audits) {
+                     const entriesSnapshot = await getDocs(collection(db, "audits", audit.id, "entries"));
+                     entriesSnapshot.forEach(entryDoc => {
+                         entriesToExport.push({...entryDoc.data(), userFullName: audit.userFullName});
+                     });
+                }
+            }
+            
+            if (entriesToExport.length === 0) {
+                alert("Nenhum dado para exportar.");
+                return;
+            }
+
+            const headers = "Numero_Apontamento,Auditor,Data_Hora_Apontamento,Zona_Operacional,Setor_Tecnico,Orgao_Anuente_Auditado,Local,Descricao_Apontamento,Complemento,Evidencia_1,Evidencia_2,Evidencia_3";
+            const csvRows = [headers];
+
+            entriesToExport.forEach(entry => {
+                const row = [
+                    entry.entryNumber,
+                    `"${entry.userFullName}"`,
+                    entry.entryTimestamp ? new Date(entry.entryTimestamp.seconds * 1000).toLocaleString('pt-BR') : 'N/A',
+                    `"${entry.operationalZone}"`,
+                    `"${entry.technicalSector}"`,
+                    `"${entry.auditedEntity}"`,
+                    `"${entry.location}"`,
+                    `"${entry.description.replace(/"/g, '""')}"`,
+                    `"${entry.complement.replace(/"/g, '""')}"`,
+                    entry.evidenceUrls.evidence_1 ? `https://drive.google.com/file/d/${entry.evidenceUrls.evidence_1}/view` : '',
+                    entry.evidenceUrls.evidence_2 ? `https://drive.google.com/file/d/${entry.evidenceUrls.evidence_2}/view` : '',
+                    entry.evidenceUrls.evidence_3 ? `https://drive.google.com/file/d/${entry.evidenceUrls.evidence_3}/view` : '',
+                ];
+                csvRows.push(row.join(','));
+            });
+
+            const csvString = csvRows.join('\n');
+            const blob = new Blob([`\uFEFF${csvString}`], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", fileName);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        const filteredAudits = audits.filter(audit => 
+            audit.userFullName.toLowerCase().includes(filter.toLowerCase()) ||
+            audit.id.toLowerCase().includes(filter.toLowerCase())
+        );
+
+        return (
+            <div className="p-4 md:p-8 max-w-6xl mx-auto">
+                <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                    <h1 className="text-2xl font-bold text-gray-800">Histórico de Auditorias</h1>
+                    <div className="flex gap-4">
+                        <button onClick={() => setView('home')} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-lg shadow-sm hover:bg-gray-50">Voltar</button>
+                        {userData.role === 'admin' && (
+                            <button onClick={() => exportToCSV()} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg shadow-sm hover:bg-green-700">
+                                <i className="fas fa-file-csv mr-2"></i> Exportar Tudo
+                            </button>
+                        )}
+                    </div>
+                </header>
+
+                {userData.role === 'admin' && (
+                    <div className="mb-6">
+                        <input type="text" placeholder="Filtrar por auditor ou ID..." value={filter} onChange={e => setFilter(e.target.value)} className="w-full max-w-md p-2 border rounded-lg" />
+                    </div>
+                )}
+
+                {loading ? <div className="text-center p-10">Carregando histórico...</div> : (
+                    <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID Auditoria</th>
+                                    {userData.role === 'admin' && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Auditor</th>}
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {filteredAudits.length > 0 ? filteredAudits.map(audit => (
+                                    <tr key={audit.id}>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">{audit.id}</td>
+                                        {userData.role === 'admin' && <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{audit.userFullName}</td>}
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{audit.createdAt ? new Date(audit.createdAt.seconds * 1000).toLocaleDateString('pt-BR') : 'N/A'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${audit.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>{audit.status}</span></td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button onClick={() => exportToCSV(audit.id)} className="text-blue-600 hover:text-blue-900">Exportar CSV</button>
+                                        </td>
+                                    </tr>
+                                )) : (
+                                    <tr><td colSpan="5" className="text-center py-10 text-gray-500">Nenhuma auditoria encontrada.</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+        );
+      }
+    </script>
     
-    <script src="app.js"></script>
+    <script type="text/babel" data-type="module">
+        // Ponto de entrada do React
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+
+        // Importações necessárias para o escopo do Babel
+        const { useState, useEffect } = React;
+        
+        // Renderiza o componente App
+        root.render(<App />);
+    </script>
+
 </body>
 </html>
