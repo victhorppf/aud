@@ -63,7 +63,7 @@
       // =================================================================================
       // COLE AQUI A NOVA URL DA SUA API (APÓS FAZER UMA NOVA IMPLANTAÇÃO)
       // =================================================================================
-      const IMAGE_API_URL = 'https://script.google.com/macros/s/AKfycbxXclXzsRcvSpmdsAFFCnrEvwkDFkcMQyym_QZ5gUvFXcJX7grnKB4u-tTwL6bwf9HR-g/exec';
+      const IMAGE_API_URL = 'https://script.google.com/macros/s/AKfycbw1bmh42CU4TuEDuJpPS76_mpNTYPT4Ijhv1b0KrpnQBQZ0Z2h9l_-VOuR-WrkxUow3bQ/exec';
 
       // Inicialização do Firebase
       const app = initializeApp(firebaseConfig);
@@ -540,7 +540,7 @@
                     let finalEvidenceUrls = {};
                     
                     if (entry.evidences.length > 0) {
-                        // MUDANÇA: ENVIANDO DADOS COMO 'text/plain' PARA EVITAR PREFLIGHT
+                        // ENVIANDO DADOS COMO 'text/plain' PARA EVITAR PREFLIGHT
                         const imagePayload = entry.evidences.map(ev => ({
                             base64: ev.base64,
                             mimeType: ev.file.type
