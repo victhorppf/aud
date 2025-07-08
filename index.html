@@ -543,7 +543,8 @@
                     if (entry.evidences.length > 0) {
                         // ENVIANDO DADOS COMO 'text/plain' PARA EVITAR PREFLIGHT
                         const imagePayload = entry.evidences.map(ev => ({
-                            base64: ev.base64,
+                            // CORREÇÃO: Remove o prefixo "data:image/jpeg;base64," da string.
+                            base64: ev.base64.split(',')[1],
                             mimeType: ev.file.type
                         }));
 
