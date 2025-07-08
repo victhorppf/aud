@@ -451,7 +451,7 @@
                                 type: 'remote',
                                 key,
                                 fileId,
-                                preview: `https://drive.google.com/uc?export=view&id=${fileId}`
+                                preview: `https://drive.usercontent.google.com/download?id=${fileId}&authuser=0`
                             })) : []
                         }));
                         setEntries(reconstructedEntries);
@@ -933,6 +933,7 @@
         const [entries, setEntries] = React.useState([]);
         const [loading, setLoading] = React.useState(true);
         const [error, setError] = React.useState('');
+        const [selectedImage, setSelectedImage] = React.useState(null);
 
         React.useEffect(() => {
             if (!auditId) {
@@ -998,9 +999,9 @@
                                     <strong className="block mb-2">Evidências:</strong>
                                     <div className="flex flex-wrap gap-4">
                                         {entry.evidenceUrls && Object.keys(entry.evidenceUrls).length > 0 ? Object.values(entry.evidenceUrls).map((fileId, evIndex) => (
-                                            <a key={evIndex} href={`https://drive.google.com/file/d/${fileId}/view`} target="_blank" rel="noopener noreferrer">
-                                                <img src={`https://drive.google.com/uc?export=view&id=${fileId}`} alt={`Evidência ${evIndex + 1}`} className="w-28 h-28 object-cover rounded-lg shadow-md hover:scale-105 transition-transform" />
-                                            </a>
+                                            <button key={evIndex} onClick={() => setSelectedImage(`https://drive.usercontent.google.com/download?id=${fileId}&authuser=0`)}>
+                                                <img src={`https://drive.usercontent.google.com/download?id=${fileId}&authuser=0`} alt={`Evidência ${evIndex + 1}`} className="w-32 h-32 object-cover rounded-lg shadow-md hover:scale-105 transition-transform cursor-pointer" />
+                                            </button>
                                         )) : <p className="text-gray-500">Nenhuma evidência fotográfica.</p>}
                                     </div>
                                 </div>
@@ -1008,6 +1009,27 @@
                         </div>
                     ))}
                 </div>
+
+                {selectedImage && (
+                    <div 
+                        className="fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-50"
+                        onClick={() => setSelectedImage(null)}
+                    >
+                        <div className="relative max-w-4xl max-h-4/5 p-4" onClick={(e) => e.stopPropagation()}>
+                             <button 
+                                onClick={() => setSelectedImage(null)}
+                                className="absolute -top-2 -right-2 m-4 text-white text-4xl font-bold hover:text-gray-300"
+                            >
+                                &times;
+                            </button>
+                            <img 
+                                src={selectedImage} 
+                                alt="Evidência em tamanho ampliado" 
+                                className="max-w-full max-h-[80vh] object-contain rounded-lg" 
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
