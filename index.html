@@ -792,7 +792,56 @@
         };
 
         const exportToCSV = async (auditId = null) => {
-            // ... (código de exportação sem alterações)
+            let entriesToExport = [];
+            let fileName = 'relatorio_completo_polaraud.csv';
+            let auditsToProcess = auditId ? audits.filter(a => a.id === auditId) : audits;
+
+            if (auditId) {
+                fileName = `auditoria_${auditId}.csv`;
+            }
+
+            for (const audit of auditsToProcess) {
+                const entriesSnapshot = await getDocs(collection(db, "audits", audit.id, "entries"));
+                entriesSnapshot.forEach(entryDoc => {
+                    entriesToExport.push({ ...entryDoc.data(), userFullName: audit.userFullName });
+                });
+            }
+
+            if (entriesToExport.length === 0) {
+                alert("Nenhum dado para exportar.");
+                return;
+            }
+
+            const headers = "Numero_Apontamento,Auditor,Data_Hora_Apontamento,Zona_Operacional,Setor_Tecnico,Orgao_Anuente_Auditado,Local,Descricao_Apontamento,Complemento,Evidencia_1,Evidencia_2,Evidencia_3";
+            const csvRows = [headers];
+
+            entriesToExport.sort((a, b) => a.entryNumber - b.entryNumber).forEach(entry => {
+                const row = [
+                    entry.entryNumber,
+                    `"${entry.userFullName || ''}"`,
+                    entry.entryTimestamp ? new Date(entry.entryTimestamp.seconds * 1000).toLocaleString('pt-BR') : 'N/A',
+                    `"${entry.operationalZone || ''}"`,
+                    `"${entry.technicalSector || ''}"`,
+                    `"${entry.auditedEntity || ''}"`,
+                    `"${entry.location || ''}"`,
+                    `"${(entry.description || '').replace(/"/g, '""')}"`,
+                    `"${(entry.complement || '').replace(/"/g, '""')}"`,
+                    entry.evidenceUrls?.evidence_1 ? `https://drive.google.com/file/d/${entry.evidenceUrls.evidence_1}/view` : '',
+                    entry.evidenceUrls?.evidence_2 ? `https://drive.google.com/file/d/${entry.evidenceUrls.evidence_2}/view` : '',
+                    entry.evidenceUrls?.evidence_3 ? `https://drive.google.com/file/d/${entry.evidenceUrls.evidence_3}/view` : '',
+                ];
+                csvRows.push(row.join(','));
+            });
+
+            const csvString = csvRows.join('\n');
+            const blob = new Blob([`\uFEFF${csvString}`], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", fileName);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         };
 
         const filteredAudits = audits.filter(audit => 
