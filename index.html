@@ -60,9 +60,9 @@
         appId: "1:891816680442:web:0017a9878182374b79e243",
         measurementId: "G-SQBWLWQH7K"
       };
-
+      
       // =================================================================================
-      // COLE AQUI A NOVA URL DA SUA API (APÓS FAZER UMA NOVA IMPLANTAÇÃO)
+      // COLE AQUI A URL DA SUA API DO GOOGLE APPS SCRIPT
       // =================================================================================
       const IMAGE_API_URL = 'https://script.google.com/macros/s/AKfycbwR5r9Iv8uN0phVnsbZdv0QAuonDRwLvkGZ8j7_KuXoXgHYaODTpZ4hAmval9Jf-0R55Q/exec';
 
@@ -111,7 +111,7 @@
 
       // Componente Principal
       function App() {
-        const [view, setView] = React.useState('loading'); // loading, login, register, home, audit, history, viewAudit, account
+        const [view, setView] = React.useState('loading');
         const [user, setUser] = React.useState(null);
         const [userData, setUserData] = React.useState(null);
         const [error, setError] = React.useState('');
@@ -197,7 +197,7 @@
         );
       }
       
-      // LoginPage, RegisterPage, AccountPage (sem alterações significativas)
+      // LoginPage, RegisterPage, AccountPage (sem alterações)
       function LoginPage({ setView, setError, setLoading }) {
         const [email, setEmail] = React.useState('');
         const [password, setPassword] = React.useState('');
@@ -281,7 +281,7 @@
                     fullName: formData.fullName,
                     email: formData.email,
                     sector: formData.sector,
-                    role: 'auditor' // Papel padrão
+                    role: 'auditor'
                 });
             } catch (err) {
                 setError("Falha no registro: " + err.message);
@@ -450,8 +450,8 @@
                             evidences: entry.evidenceUrls ? Object.entries(entry.evidenceUrls).map(([key, fileId]) => ({
                                 type: 'remote',
                                 key,
-                                fileId,
-                                preview: `https://drive.usercontent.google.com/download?id=${fileId}&authuser=0`
+                                fileId: fileId,
+                                preview: `https://drive.google.com/thumbnail?id=${fileId}&sz=s220`
                             })) : []
                         }));
                         setEntries(reconstructedEntries);
@@ -482,7 +482,7 @@
         }, [auditId]);
         
         React.useEffect(() => {
-            if (entries.length > 0 && !auditId) { // Salva rascunho apenas para novas auditorias
+            if (entries.length > 0 && !auditId) {
                 const draftToSave = entries.map(entry => ({
                     ...entry,
                     evidences: entry.evidences.filter(ev => ev.type === 'local').map(ev => ({
@@ -547,7 +547,7 @@
             }
 
             const options = {
-                maxSizeMB: 0.8, // Compressão aumentada
+                maxSizeMB: 0.8,
                 maxWidthOrHeight: 1024,
                 useWebWorker: true
             };
@@ -646,7 +646,7 @@
                             const timestamp = getTimestampString();
                             const safeEntity = entry.auditedEntity.replace(/[^a-zA-Z0-9]/g, '');
                             const safeZone = entry.operationalZone.replace(/[^a-zA-Z0-9]/g, '');
-                            const fileName = `AUD_${safeEntity}_${safeZone}_AP${entry.entryNumber}_EV${localIndex + 1}_${timestamp}`;
+                            const fileName = `AUD_${safeEntity}_${safeZone}_AP${entry.entryNumber}_EV${remoteImagesToKeep.length + localIndex + 1}_${timestamp}`;
                             
                             return {
                                 base64: ev.base64.split(',')[1],
@@ -708,7 +708,7 @@
 
                 <div className="space-y-6">
                     {entries.map((entry, index) => (
-                        <div key={entry.id} className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500 relative">
+                        <div key={entry.id || index} className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500 relative">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-lg font-semibold text-gray-700">Apontamento #{entry.entryNumber}</h3>
                                 <button onClick={() => removeEntry(index)} className="text-red-500 hover:text-red-700">
@@ -819,7 +819,7 @@
                 const row = [
                     entry.entryNumber,
                     `"${entry.userFullName || ''}"`,
-                    entry.entryTimestamp ? new Date(entry.entryTimestamp.seconds * 1000).toLocaleString('pt-BR') : 'N/A',
+                    `"${entry.entryTimestamp ? new Date(entry.entryTimestamp.seconds * 1000).toLocaleString('pt-BR') : 'N/A'}"`,
                     `"${entry.operationalZone || ''}"`,
                     `"${entry.technicalSector || ''}"`,
                     `"${entry.auditedEntity || ''}"`,
@@ -999,8 +999,8 @@
                                     <strong className="block mb-2">Evidências:</strong>
                                     <div className="flex flex-wrap gap-4">
                                         {entry.evidenceUrls && Object.keys(entry.evidenceUrls).length > 0 ? Object.values(entry.evidenceUrls).map((fileId, evIndex) => (
-                                            <button key={evIndex} onClick={() => setSelectedImage(`https://drive.usercontent.google.com/download?id=${fileId}&authuser=0`)}>
-                                                <img src={`https://drive.usercontent.google.com/download?id=${fileId}&authuser=0`} alt={`Evidência ${evIndex + 1}`} className="w-32 h-32 object-cover rounded-lg shadow-md hover:scale-105 transition-transform cursor-pointer" />
+                                            <button key={evIndex} onClick={() => setSelectedImage(`https://drive.google.com/thumbnail?id=${fileId}&sz=s1024`)}>
+                                                <img src={`https://drive.google.com/thumbnail?id=${fileId}&sz=s220`} alt={`Evidência ${evIndex + 1}`} className="w-32 h-32 object-cover rounded-lg shadow-md hover:scale-105 transition-transform cursor-pointer" />
                                             </button>
                                         )) : <p className="text-gray-500">Nenhuma evidência fotográfica.</p>}
                                     </div>
