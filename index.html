@@ -275,7 +275,7 @@
             case 'audit':
               return <AuditForm userData={userData} setView={handleNavigate} auditId={selectedAuditId} notify={notify} />;
             case 'history':
-              return <HistoryPage userData={userData} setView={handleNavigate} onContinue={handleContinueAudit} onView={handleViewAudit} notify={notify} />;
+              return <HistoryPage userData={userData} setView={handleNavigate} onContinue={handleContinueAudit} onView={handleViewAudit} notify={notify} setLoading={setLoading} />;
             case 'account':
               return <AccountPage userData={userData} setUserData={setUserData} setView={handleNavigate} notify={notify} />;
             case 'viewAudit':
@@ -1315,14 +1315,13 @@
         );
       }
 
-      function ViewAuditPage({ setView, auditId, userData, notify }) {
+      function ViewAuditPage({ setView, auditId, userData, notify, setLoading }) {
         const [audit, setAudit] = React.useState(null);
         const [entries, setEntries] = React.useState([]);
         const [loadingData, setLoadingData] = React.useState(true);
         const [errorData, setErrorData] = React.useState('');
         const [selectedImage, setSelectedImage] = React.useState(null);
         const [confirmAction, setConfirmAction] = React.useState(null);
-        const [loading, setLoading] = React.useState(false);
 
         React.useEffect(() => {
             if (!auditId) {
