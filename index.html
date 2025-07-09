@@ -17,6 +17,26 @@
         .loader { border-top-color: #3498db; -webkit-animation: spin 1s linear infinite; animation: spin 1s linear infinite; }
         @-webkit-keyframes spin { 0% { -webkit-transform: rotate(0deg); } 100% { -webkit-transform: rotate(360deg); } }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .notification {
+            transition: all 0.5s ease-in-out;
+        }
+        .notification-enter {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+        .notification-enter-active {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .notification-exit {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .notification-exit-active {
+            opacity: 0;
+            transform: translateX(100%);
+        }
     </style>
 </head>
 <body>
@@ -110,14 +130,88 @@
         "ZONA 4": ["AZ-15", "AZ-16", "AZ-20", "AZ-21", "AZ-22", "AZ-24 (Box)", "AZ-26", "AZ-27"],
       };
 
+      function Notification({ message, type, onClose }) {
+        const [exiting, setExiting] = React.useState(false);
+
+        const colors = {
+            success: 'bg-green-500',
+            error: 'bg-red-500',
+            warning: 'bg-yellow-500',
+            info: 'bg-blue-500',
+        };
+
+        const icons = {
+            success: 'fa-check-circle',
+            error: 'fa-exclamation-circle',
+            warning: 'fa-exclamation-triangle',
+            info: 'fa-info-circle',
+        }
+
+        React.useEffect(() => {
+            const timer = setTimeout(() => {
+                setExiting(true);
+                setTimeout(onClose, 500);
+            }, 5000);
+            return () => clearTimeout(timer);
+        }, [onClose]);
+
+        const handleClose = () => {
+            setExiting(true);
+            setTimeout(onClose, 500);
+        };
+
+        return (
+            <div className={`notification ${exiting ? 'notification-exit-active' : 'notification-enter-active'} flex items-center ${colors[type]} text-white text-sm font-bold px-4 py-3 rounded-lg shadow-lg mb-2`} role="alert">
+                <i className={`fas ${icons[type]} mr-3`}></i>
+                <p>{message}</p>
+                <button onClick={handleClose} className="ml-auto -mr-2 p-1">
+                    <i className="fas fa-times"></i>
+                </button>
+            </div>
+        );
+      }
+
+      function ConfirmationModal({ action, onCancel }) {
+          if (!action) return null;
+
+          const colorClasses = {
+              green: 'bg-green-600 hover:bg-green-700',
+              red: 'bg-red-600 hover:bg-red-700',
+              default: 'bg-blue-600 hover:bg-blue-700'
+          };
+
+          const confirmColorClass = colorClasses[action.color] || colorClasses.default;
+
+          return (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                  <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
+                      <p className="text-center mb-4">{action.message}</p>
+                      <div className="flex justify-center gap-4">
+                          <button onClick={onCancel} className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400">Cancelar</button>
+                          <button onClick={action.onConfirm} className={`px-4 py-2 text-white rounded-lg ${confirmColorClass}`}>Confirmar</button>
+                      </div>
+                  </div>
+              </div>
+          );
+      }
+
       // Componente Principal
       function App() {
         const [view, setView] = React.useState('loading');
         const [user, setUser] = React.useState(null);
         const [userData, setUserData] = React.useState(null);
-        const [error, setError] = React.useState('');
+        const [notifications, setNotifications] = React.useState([]);
         const [loading, setLoading] = React.useState(false);
         const [selectedAuditId, setSelectedAuditId] = React.useState(null);
+
+        const notify = (message, type = 'info') => {
+            const id = Date.now();
+            setNotifications(prev => [...prev, { id, message, type }]);
+        };
+
+        const removeNotification = (id) => {
+            setNotifications(prev => prev.filter(n => n.id !== id));
+        };
 
         React.useEffect(() => {
           const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -171,51 +265,54 @@
             case 'loading':
               return <div className="flex justify-center items-center h-screen"><div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div></div>;
             case 'login':
-              return <LoginPage setView={handleNavigate} setError={setError} setLoading={setLoading} />;
+              return <LoginPage setView={handleNavigate} notify={notify} setLoading={setLoading} />;
             case 'register':
-              return <RegisterPage setView={handleNavigate} setError={setError} setLoading={setLoading} />;
+              return <RegisterPage setView={handleNavigate} notify={notify} setLoading={setLoading} />;
             case 'forgotPassword':
-              return <ForgotPasswordPage setView={handleNavigate} setError={setError} setLoading={setLoading} />;
+              return <ForgotPasswordPage setView={handleNavigate} notify={notify} setLoading={setLoading} />;
             case 'home':
               return <HomePage userData={userData} setView={handleNavigate} handleLogout={handleLogout} handleNewAudit={handleNewAudit} />;
             case 'audit':
-              return <AuditForm userData={userData} setView={handleNavigate} auditId={selectedAuditId} />;
+              return <AuditForm userData={userData} setView={handleNavigate} auditId={selectedAuditId} notify={notify} />;
             case 'history':
-              return <HistoryPage userData={userData} setView={handleNavigate} onContinue={handleContinueAudit} onView={handleViewAudit} />;
+              return <HistoryPage userData={userData} setView={handleNavigate} onContinue={handleContinueAudit} onView={handleViewAudit} notify={notify} />;
             case 'account':
-              return <AccountPage userData={userData} setUserData={setUserData} setView={handleNavigate} />;
+              return <AccountPage userData={userData} setUserData={setUserData} setView={handleNavigate} notify={notify} />;
             case 'viewAudit':
-              return <ViewAuditPage userData={userData} setView={handleNavigate} auditId={selectedAuditId} setLoading={setLoading} setError={setError} />;
+              return <ViewAuditPage userData={userData} setView={handleNavigate} auditId={selectedAuditId} setLoading={setLoading} notify={notify} />;
             default:
-              return <LoginPage setView={handleNavigate} setError={setError} setLoading={setLoading} />;
+              return <LoginPage setView={handleNavigate} notify={notify} setLoading={setLoading} />;
           }
         };
 
         return (
           <div className="min-h-screen bg-gray-100">
+            <div className="fixed bottom-4 right-4 z-50 w-full max-w-sm">
+                {notifications.map(n => (
+                    <Notification key={n.id} message={n.message} type={n.type} onClose={() => removeNotification(n.id)} />
+                ))}
+            </div>
             {loading && !view.includes('audit') && <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"><div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div><p className="ml-4 text-white">Processando...</p></div>}
-            {error && <div className="fixed top-5 right-5 bg-red-500 text-white p-3 rounded-lg shadow-lg animate-pulse" onClick={() => setError('')}>{error}</div>}
             {renderView()}
           </div>
         );
       }
       
-      function LoginPage({ setView, setError, setLoading }) {
+      function LoginPage({ setView, notify, setLoading }) {
         const [email, setEmail] = React.useState('');
         const [password, setPassword] = React.useState('');
 
         const handleLogin = async (e) => {
             e.preventDefault();
             if (!email || !password) {
-                setError("Por favor, preencha todos os campos.");
+                notify("Por favor, preencha todos os campos.", "warning");
                 return;
             }
             setLoading(true);
-            setError('');
             try {
                 await signInWithEmailAndPassword(auth, email, password);
             } catch (err) {
-                setError("Falha no login. Verifique suas credenciais.");
+                notify("Falha no login. Verifique suas credenciais.", "error");
                 console.error(err);
             } finally {
                 setLoading(false);
@@ -247,24 +344,22 @@
         );
       }
 
-      function ForgotPasswordPage({ setView, setError, setLoading }) {
+      function ForgotPasswordPage({ setView, notify, setLoading }) {
         const [email, setEmail] = React.useState('');
-        const [message, setMessage] = React.useState('');
-
+        
         const handleResetPassword = async (e) => {
             e.preventDefault();
             if (!email) {
-                setError("Por favor, insira seu e-mail.");
+                notify("Por favor, insira seu e-mail.", "warning");
                 return;
             }
             setLoading(true);
-            setError('');
-            setMessage('');
             try {
                 await sendPasswordResetEmail(auth, email);
-                setMessage("E-mail de redefinição enviado! Verifique sua caixa de entrada e pasta de spam.");
+                notify("E-mail de redefinição enviado! Verifique sua caixa de entrada.", "success");
+                setView('login');
             } catch (err) {
-                setError("Falha ao enviar e-mail. Verifique se o e-mail está correto.");
+                notify("Falha ao enviar e-mail. Verifique se o e-mail está correto.", "error");
                 console.error(err);
             } finally {
                 setLoading(false);
@@ -276,7 +371,6 @@
                 <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg">
                     <h1 className="text-2xl font-bold text-center text-gray-800">Redefinir Senha</h1>
                     <p className="text-center text-gray-500">Insira seu e-mail para receber o link de redefinição.</p>
-                    {message && <p className="text-center text-green-600 bg-green-50 p-3 rounded-lg">{message}</p>}
                     <form onSubmit={handleResetPassword} className="space-y-6">
                         <div>
                             <label className="text-sm font-medium text-gray-600">Email</label>
@@ -292,7 +386,7 @@
         );
       }
 
-      function RegisterPage({ setView, setError, setLoading }) {
+      function RegisterPage({ setView, notify, setLoading }) {
         const [secret, setSecret] = React.useState('');
         const [isSecretValid, setIsSecretValid] = React.useState(false);
         const [formData, setFormData] = React.useState({
@@ -307,9 +401,8 @@
         const handleSecretCheck = () => {
             if (secret === SECRET_KEY) {
                 setIsSecretValid(true);
-                setError('');
             } else {
-                setError("Segredo incorreto!");
+                notify("Segredo incorreto!", "error");
             }
         };
 
@@ -320,7 +413,6 @@
         const handleRegister = async (e) => {
             e.preventDefault();
             setLoading(true);
-            setError('');
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
                 const user = userCredential.user;
@@ -333,8 +425,9 @@
                     sector: formData.sector,
                     role: 'auditor'
                 });
+                notify("Usuário registrado com sucesso!", "success");
             } catch (err) {
-                setError("Falha no registro: " + err.message);
+                notify("Falha no registro: " + err.message, "error");
                 console.error(err);
             } finally {
                 setLoading(false);
@@ -375,15 +468,13 @@
         );
       }
 
-      function AccountPage({ userData, setUserData, setView }) {
+      function AccountPage({ userData, setUserData, setView, notify }) {
         const [fullName, setFullName] = React.useState(userData.fullName);
         const [sector, setSector] = React.useState(userData.sector);
         const [isSaving, setIsSaving] = React.useState(false);
-        const [message, setMessage] = React.useState('');
 
         const handleSave = async () => {
             setIsSaving(true);
-            setMessage('');
             try {
                 const userRef = doc(db, "users", userData.uid);
                 await updateDoc(userRef, {
@@ -391,10 +482,10 @@
                     sector: sector
                 });
                 setUserData({ ...userData, fullName, sector });
-                setMessage('Dados atualizados com sucesso!');
+                notify('Dados atualizados com sucesso!', 'success');
             } catch (error) {
                 console.error("Erro ao atualizar dados:", error);
-                setMessage('Falha ao atualizar dados.');
+                notify('Falha ao atualizar dados.', 'error');
             } finally {
                 setIsSaving(false);
             }
@@ -422,7 +513,6 @@
                         </select>
                     </div>
                     <div className="flex justify-end items-center">
-                        {message && <p className="text-sm text-green-600 mr-4">{message}</p>}
                         <button onClick={handleSave} disabled={isSaving} className="px-6 py-2 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
                             {isSaving ? 'Salvando...' : 'Salvar Alterações'}
                         </button>
@@ -469,11 +559,11 @@
         );
       }
 
-      function AuditForm({ userData, setView, auditId }) {
+      function AuditForm({ userData, setView, auditId, notify }) {
         const [entries, setEntries] = React.useState([]);
         const [isSaving, setIsSaving] = React.useState(false);
-        const [globalError, setGlobalError] = React.useState('');
         const [loadingMessage, setLoadingMessage] = React.useState('');
+        const [confirmAction, setConfirmAction] = React.useState(null);
 
         const loadingMessages = [
             "Estamos salvando sua auditoria...",
@@ -530,7 +620,7 @@
                         }));
                         setEntries(reconstructedEntries);
                     } catch (error) {
-                        setGlobalError("Erro ao carregar auditoria: " + error.message);
+                        notify("Erro ao carregar auditoria: " + error.message, 'error');
                     } finally {
                         setIsSaving(false);
                     }
@@ -591,14 +681,19 @@
         };
 
         const removeEntry = (indexToRemove) => {
-            if (window.confirm("Tem certeza que deseja apagar este apontamento?")) {
-                const newEntries = entries.filter((_, index) => index !== indexToRemove);
-                const renumberedEntries = newEntries.map((entry, index) => ({
-                    ...entry,
-                    entryNumber: index + 1
-                }));
-                setEntries(renumberedEntries);
-            }
+            setConfirmAction({
+                message: "Tem certeza que deseja apagar este apontamento?",
+                color: "red",
+                onConfirm: () => {
+                    const newEntries = entries.filter((_, index) => index !== indexToRemove);
+                    const renumberedEntries = newEntries.map((entry, index) => ({
+                        ...entry,
+                        entryNumber: index + 1
+                    }));
+                    setEntries(renumberedEntries);
+                    setConfirmAction(null);
+                }
+            });
         };
 
         const updateEntry = (index, field, value) => {
@@ -616,7 +711,7 @@
 
             const currentEvidences = entries[index].evidences;
             if (currentEvidences.length + files.length > 3) {
-                alert("Você pode adicionar no máximo 3 evidências.");
+                notify("Você pode adicionar no máximo 3 evidências.", "warning");
                 return;
             }
 
@@ -646,7 +741,7 @@
                     };
                 } catch (error) {
                     console.error("Erro na compressão:", error);
-                    alert("Falha ao processar a imagem.");
+                    notify("Falha ao processar a imagem.", "error");
                 }
             }
         };
@@ -669,11 +764,10 @@
 
         const saveAudit = async () => {
             if (entries.length === 0 || entries.some(e => !e.description)) {
-                setGlobalError("A auditoria precisa ter pelo menos um apontamento com descrição.");
+                notify("A auditoria precisa ter pelo menos um apontamento com descrição.", "warning");
                 return;
             }
             setIsSaving(true);
-            setGlobalError('');
 
             try {
                 // 1. Processar todas as imagens primeiro
@@ -756,12 +850,12 @@
                 
                 await batch.commit();
                 await clearDraft();
-                alert("Auditoria salva com sucesso!");
+                notify("Auditoria salva com sucesso!", "success");
                 setView('home');
 
             } catch (error) {
                 console.error("Erro ao salvar auditoria:", error);
-                setGlobalError("Ocorreu um erro grave ao salvar. Tente novamente. Detalhes: " + error.message);
+                notify("Ocorreu um erro grave ao salvar. Detalhes: " + error.message, "error");
             } finally {
                 setIsSaving(false);
             }
@@ -775,14 +869,13 @@
                     <p className="text-white text-xl">{loadingMessage}</p>
                 </div>
             )}
+            <ConfirmationModal action={confirmAction} onCancel={() => setConfirmAction(null)} />
             <div className={`p-4 md:p-8 max-w-4xl mx-auto ${isSaving ? 'pointer-events-none' : ''}`}>
                 <header className="flex justify-between items-center mb-6">
                     <h1 className="text-2xl font-bold text-gray-800">{auditId ? 'Continuar Auditoria' : 'Nova Auditoria'}</h1>
                     <button onClick={() => setView('home')} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-lg shadow-sm hover:bg-gray-50">Voltar</button>
                 </header>
                 
-                {globalError && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">{globalError}</div>}
-
                 <div className="space-y-6">
                     {entries.map((entry, index) => (
                         <div key={entry.id || index} className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500 relative">
@@ -845,7 +938,7 @@
         );
       }
       
-      function HistoryPage({ userData, setView, onContinue, onView }) {
+      function HistoryPage({ userData, setView, onContinue, onView, notify }) {
         const [audits, setAudits] = React.useState([]);
         const [loading, setLoading] = React.useState(true);
         const [error, setError] = React.useState(null);
@@ -853,6 +946,7 @@
         const [showExportModal, setShowExportModal] = React.useState(false);
         const [usersForExport, setUsersForExport] = React.useState([]);
         const [selectedUserIds, setSelectedUserIds] = React.useState([]);
+        const [confirmAction, setConfirmAction] = React.useState(null);
 
         const formatTimestamp = (timestamp) => {
             if (!timestamp || !timestamp.seconds) return null;
@@ -905,43 +999,53 @@
         }, [userData]);
         
         const handleStatusChange = async (auditId, newStatus) => {
-            if (confirm(`Tem certeza que deseja alterar o status desta auditoria para "${newStatus}"?`)) {
-                const auditRef = doc(db, "audits", auditId);
-                await updateDoc(auditRef, { 
-                    status: newStatus,
-                    completedAt: serverTimestamp()
-                });
-                fetchAudits();
-            }
+            setConfirmAction({
+                message: "Tem certeza que deseja concluir essa auditoria?",
+                color: 'green',
+                onConfirm: async () => {
+                    const auditRef = doc(db, "audits", auditId);
+                    await updateDoc(auditRef, { 
+                        status: newStatus,
+                        completedAt: serverTimestamp()
+                    });
+                    fetchAudits();
+                    setConfirmAction(null);
+                    notify("Status da auditoria alterado com sucesso!", "success");
+                }
+            });
         };
 
         const handleDeleteAudit = async (auditId) => {
-            if (window.confirm("Tem certeza que deseja apagar esta auditoria permanentemente? Esta ação não pode ser desfeita.")) {
-                setLoading(true);
-                setError(null);
-                try {
-                    const entriesRef = collection(db, "audits", auditId, "entries");
-                    const entriesSnapshot = await getDocs(entriesRef);
-                    
-                    const batch = writeBatch(db);
-                    
-                    entriesSnapshot.forEach(doc => {
-                        batch.delete(doc.ref);
-                    });
-                    
-                    batch.delete(doc(db, "audits", auditId));
-                    
-                    await batch.commit();
+            setConfirmAction({
+                message: "Tem certeza que deseja apagar esta auditoria permanentemente? Esta ação não pode ser desfeita.",
+                color: 'red',
+                onConfirm: async () => {
+                    setLoading(true);
+                    try {
+                        const entriesRef = collection(db, "audits", auditId, "entries");
+                        const entriesSnapshot = await getDocs(entriesRef);
+                        
+                        const batch = writeBatch(db);
+                        
+                        entriesSnapshot.forEach(doc => {
+                            batch.delete(doc.ref);
+                        });
+                        
+                        batch.delete(doc(db, "audits", auditId));
+                        
+                        await batch.commit();
 
-                    alert("Auditoria apagada com sucesso!");
-                    fetchAudits(); // Refresh the list
-                } catch (err) {
-                    console.error("Erro ao apagar auditoria:", err);
-                    setError("Falha ao apagar a auditoria. Verifique as permissões e tente novamente.");
-                } finally {
-                    setLoading(false);
+                        notify("Auditoria apagada com sucesso!", "success");
+                        fetchAudits();
+                    } catch (err) {
+                        console.error("Erro ao apagar auditoria:", err);
+                        notify("Falha ao apagar a auditoria. Verifique as permissões e tente novamente.", "error");
+                    } finally {
+                        setLoading(false);
+                        setConfirmAction(null);
+                    }
                 }
-            }
+            });
         };
         
         const handleExportClick = () => {
@@ -982,7 +1086,7 @@
             }
 
             if (auditsToProcess.length === 0) {
-                alert("Nenhuma auditoria para exportar.");
+                notify("Nenhuma auditoria para exportar.", "warning");
                 return;
             }
 
@@ -994,7 +1098,7 @@
             }
 
             if (entriesToExport.length === 0) {
-                alert("Nenhum apontamento encontrado para exportar.");
+                notify("Nenhum apontamento encontrado para exportar.", "warning");
                 return;
             }
 
@@ -1037,6 +1141,7 @@
 
         return (
             <div className="p-4 md:p-8 max-w-7xl mx-auto">
+                <ConfirmationModal action={confirmAction} onCancel={() => setConfirmAction(null)} />
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <h1 className="text-2xl font-bold text-gray-800">Histórico de Auditorias</h1>
                     <div className="flex gap-4">
@@ -1210,12 +1315,13 @@
         );
       }
 
-      function ViewAuditPage({ setView, auditId, userData, setLoading, setError }) {
+      function ViewAuditPage({ setView, auditId, userData, setLoading, notify }) {
         const [audit, setAudit] = React.useState(null);
         const [entries, setEntries] = React.useState([]);
         const [loadingData, setLoadingData] = React.useState(true);
         const [errorData, setErrorData] = React.useState('');
         const [selectedImage, setSelectedImage] = React.useState(null);
+        const [confirmAction, setConfirmAction] = React.useState(null);
 
         React.useEffect(() => {
             if (!auditId) {
@@ -1247,30 +1353,34 @@
         }, [auditId]);
 
         const handleDeleteAudit = async () => {
-            if (window.confirm("Tem certeza que deseja apagar esta auditoria permanentemente? Esta ação não pode ser desfeita.")) {
-                setLoading(true);
-                setError('');
-                try {
-                    const entriesRef = collection(db, "audits", auditId, "entries");
-                    const entriesSnapshot = await getDocs(entriesRef);
-                    const deleteBatch = writeBatch(db);
-                    entriesSnapshot.forEach(doc => {
-                        deleteBatch.delete(doc.ref);
-                    });
-                    
-                    deleteBatch.delete(doc(db, "audits", auditId));
+            setConfirmAction({
+                message: "Tem certeza que deseja apagar esta auditoria permanentemente? Esta ação não pode ser desfeita.",
+                color: 'red',
+                onConfirm: async () => {
+                    setLoading(true);
+                    setConfirmAction(null);
+                    try {
+                        const entriesRef = collection(db, "audits", auditId, "entries");
+                        const entriesSnapshot = await getDocs(entriesRef);
+                        const deleteBatch = writeBatch(db);
+                        entriesSnapshot.forEach(doc => {
+                            deleteBatch.delete(doc.ref);
+                        });
+                        
+                        deleteBatch.delete(doc(db, "audits", auditId));
 
-                    await deleteBatch.commit();
+                        await deleteBatch.commit();
 
-                    alert("Auditoria apagada com sucesso!");
-                    setView('history');
-                } catch (err) {
-                    console.error("Erro ao apagar auditoria:", err);
-                    setError("Falha ao apagar a auditoria. Tente novamente.");
-                } finally {
-                    setLoading(false);
+                        notify("Auditoria apagada com sucesso!", "success");
+                        setView('history');
+                    } catch (err) {
+                        console.error("Erro ao apagar auditoria:", err);
+                        notify("Falha ao apagar a auditoria. Tente novamente.", "error");
+                    } finally {
+                        setLoading(false);
+                    }
                 }
-            }
+            });
         };
 
         if (loadingData) return <div className="flex justify-center items-center h-screen"><div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div></div>;
@@ -1278,6 +1388,7 @@
 
         return (
             <div className="p-4 md:p-8 max-w-4xl mx-auto">
+                <ConfirmationModal action={confirmAction} onCancel={() => setConfirmAction(null)} />
                 <header className="flex justify-between items-center mb-6">
                     <div>
                         <h1 className="text-2xl font-bold text-gray-800">Visualizar Auditoria</h1>
