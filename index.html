@@ -225,7 +225,7 @@
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-50">
                 <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg">
-                    <img src="https://i.imgur.com/TN9JSD7.png" alt="Logo da PolarAUD" className="mx-auto h-20 w-auto" />
+                    <img src="https://i.imgur.com/TN9JSD7.png" alt="Logo da PolarAUD" className="mx-auto h-60 w-auto" />
                     <p className="text-center text-gray-500">Acesse sua conta de auditoria</p>
                     <form onSubmit={handleLogin} className="space-y-6">
                         <div>
@@ -437,7 +437,7 @@
         return (
             <div className="p-4 md:p-8">
                 <header className="flex justify-between items-center mb-8">
-                    <img src="https://i.imgur.com/TN9JSD7.png" alt="Logo da PolarAUD" className="h-12 w-auto" />
+                    <img src="https://i.imgur.com/TN9JSD7.png" alt="Logo da PolarAUD" className="h-24 w-auto" />
                     <div className="relative">
                         <button onClick={() => setShowMenu(!showMenu)} className="flex items-center space-x-2 p-2 rounded-full bg-white shadow">
                             <span className="font-medium text-gray-700 hidden md:block">{userData?.fullName}</span>
@@ -766,18 +766,24 @@
                                 </button>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <input type="text" value={`Auditor: ${userData.fullName}`} className="w-full p-2 bg-gray-100 rounded-md" disabled />
-                                <input type="text" value={`Setor Técnico: ${userData.sector}`} className="w-full p-2 bg-gray-100 rounded-md" disabled />
-                                
-                                <select value={entry.auditedEntity} onChange={e => updateEntry(index, 'auditedEntity', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
-                                    {AUDITED_ENTITIES.map(e => <option key={e} value={e}>{e}</option>)}
-                                </select>
-                                <select value={entry.operationalZone} onChange={e => updateEntry(index, 'operationalZone', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
-                                    {Object.keys(ZONES).map(z => <option key={z} value={z}>{z}</option>)}
-                                </select>
-                                <select value={entry.location} onChange={e => updateEntry(index, 'location', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md md:col-span-2">
-                                    {ZONES[entry.operationalZone].map(l => <option key={l} value={l}>{l}</option>)}
-                                </select>
+                                <div>
+                                    <label htmlFor={`auditedEntity-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Órgão Anuente Auditado</label>
+                                    <select id={`auditedEntity-${index}`} value={entry.auditedEntity} onChange={e => updateEntry(index, 'auditedEntity', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
+                                        {AUDITED_ENTITIES.map(e => <option key={e} value={e}>{e}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label htmlFor={`operationalZone-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Zona Operacional</label>
+                                    <select id={`operationalZone-${index}`} value={entry.operationalZone} onChange={e => updateEntry(index, 'operationalZone', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
+                                        {Object.keys(ZONES).map(z => <option key={z} value={z}>{z}</option>)}
+                                    </select>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label htmlFor={`location-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Local</label>
+                                    <select id={`location-${index}`} value={entry.location} onChange={e => updateEntry(index, 'location', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
+                                        {ZONES[entry.operationalZone].map(l => <option key={l} value={l}>{l}</option>)}
+                                    </select>
+                                </div>
 
                                 <textarea value={entry.description} onChange={e => updateEntry(index, 'description', e.target.value)} placeholder="APONTAMENTO (EM MAIÚSCULAS)" className="w-full p-2 bg-gray-50 border rounded-md md:col-span-2 h-24 uppercase" required></textarea>
                                 <textarea value={entry.complement} onChange={e => updateEntry(index, 'complement', e.target.value)} placeholder="Complemento (opcional)" className="w-full p-2 bg-gray-50 border rounded-md md:col-span-2 h-20"></textarea>
@@ -814,19 +820,56 @@
       function HistoryPage({ userData, setView, onContinue, onView }) {
         const [audits, setAudits] = React.useState([]);
         const [loading, setLoading] = React.useState(true);
+        const [error, setError] = React.useState(null);
         const [filter, setFilter] = React.useState('');
+        const [showExportModal, setShowExportModal] = React.useState(false);
+        const [usersForExport, setUsersForExport] = React.useState([]);
+        const [selectedUserIds, setSelectedUserIds] = React.useState([]);
+
+        const formatTimestamp = (timestamp) => {
+            if (!timestamp || !timestamp.seconds) return null;
+            const date = new Date(timestamp.seconds * 1000);
+            return date.toLocaleString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        };
 
         const fetchAudits = async () => {
+            if (!userData) {
+                setLoading(false);
+                return;
+            }
             setLoading(true);
-            const q = userData.role === 'admin' 
-                ? query(collection(db, "audits"))
-                : query(collection(db, "audits"), where("userId", "==", userData.uid));
-            
-            const querySnapshot = await getDocs(q);
-            const auditsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            auditsData.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-            setAudits(auditsData);
-            setLoading(false);
+            setError(null);
+            try {
+                const q = userData.role === 'admin' 
+                    ? query(collection(db, "audits"))
+                    : query(collection(db, "audits"), where("userId", "==", userData.uid));
+                
+                const querySnapshot = await getDocs(q);
+                const auditsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                auditsData.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+                
+                if(userData.role === 'admin') {
+                    const allAuditsSnapshot = await getDocs(query(collection(db, "audits")));
+                    const allAuditsData = allAuditsSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                    const uniqueUsers = [...new Map(allAuditsData.map(audit => 
+                        (audit.userId && audit.userFullName) ? [audit.userId, {id: audit.userId, name: audit.userFullName}] : null
+                    ).filter(Boolean)).values()];
+                    setUsersForExport(uniqueUsers);
+                }
+
+                setAudits(auditsData);
+            } catch (err) {
+                console.error("Erro ao buscar auditorias:", err);
+                setError("Não foi possível carregar o histórico. Tente novamente mais tarde.");
+            } finally {
+                setLoading(false);
+            }
         };
 
         React.useEffect(() => {
@@ -836,18 +879,54 @@
         const handleStatusChange = async (auditId, newStatus) => {
             if (confirm(`Tem certeza que deseja alterar o status desta auditoria para "${newStatus}"?`)) {
                 const auditRef = doc(db, "audits", auditId);
-                await updateDoc(auditRef, { status: newStatus });
+                await updateDoc(auditRef, { 
+                    status: newStatus,
+                    completedAt: serverTimestamp()
+                });
                 fetchAudits();
             }
         };
+        
+        const handleExportClick = () => {
+            if (userData.role === 'admin') {
+                setShowExportModal(true);
+            } else {
+                exportToCSV(null, [userData.uid]);
+            }
+        };
 
-        const exportToCSV = async (auditId = null) => {
+        const handleUserSelectionChange = (userId) => {
+            setSelectedUserIds(prev => 
+                prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+            );
+        };
+
+        const handleFinalExport = () => {
+            exportToCSV(null, selectedUserIds);
+            setShowExportModal(false);
+            setSelectedUserIds([]);
+        };
+
+        const exportToCSV = async (auditId = null, userIds = null) => {
             let entriesToExport = [];
             let fileName = 'relatorio_completo_polaraud.csv';
-            let auditsToProcess = auditId ? audits.filter(a => a.id === auditId) : audits;
-
+            
+            let auditsToProcess;
             if (auditId) {
+                auditsToProcess = audits.filter(a => a.id === auditId);
                 fileName = `auditoria_${auditId}.csv`;
+            } else if (userIds && userIds.length > 0) {
+                const q = query(collection(db, "audits"), where("userId", "in", userIds));
+                const querySnapshot = await getDocs(q);
+                auditsToProcess = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                fileName = `auditorias_selecionadas.csv`;
+            } else {
+                auditsToProcess = audits;
+            }
+
+            if (auditsToProcess.length === 0) {
+                alert("Nenhuma auditoria para exportar.");
+                return;
             }
 
             for (const audit of auditsToProcess) {
@@ -858,7 +937,7 @@
             }
 
             if (entriesToExport.length === 0) {
-                alert("Nenhum dado para exportar.");
+                alert("Nenhum apontamento encontrado para exportar.");
                 return;
             }
 
@@ -900,18 +979,49 @@
         );
 
         return (
-            <div className="p-4 md:p-8 max-w-6xl mx-auto">
+            <div className="p-4 md:p-8 max-w-7xl mx-auto">
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <h1 className="text-2xl font-bold text-gray-800">Histórico de Auditorias</h1>
                     <div className="flex gap-4">
                         <button onClick={() => setView('home')} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-lg shadow-sm hover:bg-gray-50">Voltar</button>
-                        {userData.role === 'admin' && (
-                            <button onClick={() => exportToCSV()} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg shadow-sm hover:bg-green-700">
-                                <i className="fas fa-file-csv mr-2"></i> Exportar Tudo
-                            </button>
-                        )}
+                        <button onClick={handleExportClick} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg shadow-sm hover:bg-green-700">
+                            <i className="fas fa-file-csv mr-2"></i> Exportar TUDO
+                        </button>
                     </div>
                 </header>
+                
+                {showExportModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                        <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+                            <h3 className="text-lg font-bold mb-4">Exportar Auditorias</h3>
+                            <p className="mb-4">Selecione os usuários para exportar:</p>
+                            <div className="space-y-2 max-h-60 overflow-y-auto mb-4">
+                                {usersForExport.map(user => (
+                                    <div key={user.id} className="flex items-center">
+                                        <input 
+                                            type="checkbox" 
+                                            id={`user-${user.id}`} 
+                                            checked={selectedUserIds.includes(user.id)}
+                                            onChange={() => handleUserSelectionChange(user.id)}
+                                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        />
+                                        <label htmlFor={`user-${user.id}`} className="ml-3 block text-sm font-medium text-gray-700">{user.name}</label>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="flex justify-end gap-4 mt-6">
+                                <button onClick={() => {
+                                    const allUserIds = usersForExport.map(u => u.id);
+                                    exportToCSV(null, allUserIds);
+                                    setShowExportModal(false);
+                                }} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">Exportar Todos Juntos</button>
+                                <button onClick={handleFinalExport} disabled={selectedUserIds.length === 0} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400">Exportar Selecionados</button>
+                                <button onClick={() => setShowExportModal(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">Cancelar</button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
 
                 {userData.role === 'admin' && (
                     <div className="mb-6">
@@ -919,15 +1029,69 @@
                     </div>
                 )}
 
-                {loading ? <div className="text-center p-10">Carregando histórico...</div> : (
-                    <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-                        <div className="overflow-x-auto">
+                {loading ? <div className="text-center p-10">Carregando histórico...</div> : error ? <div className="text-center p-10 text-red-500">{error}</div> : (
+                    <div className="space-y-4">
+                        {/* Mobile View */}
+                        <div className="md:hidden">
+                            {filteredAudits.length > 0 ? filteredAudits.map(audit => (
+                                <div key={audit.id} className="bg-white p-4 rounded-lg shadow space-y-3">
+                                    <div>
+                                        <div className="text-xs text-gray-500">ID</div>
+                                        <div className="font-mono text-sm text-gray-800 break-all">{audit.id}</div>
+                                        {audit.firstEntrySummary && (
+                                            <div className="text-xs text-gray-600 mt-1">
+                                                {audit.firstEntrySummary.auditedEntity} / {audit.firstEntrySummary.operationalZone}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {userData.role === 'admin' && (
+                                         <div>
+                                            <div className="text-xs text-gray-500">Auditor</div>
+                                            <div className="text-sm text-gray-900">{audit.userFullName}</div>
+                                        </div>
+                                    )}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <div className="text-xs text-gray-500">Hora de Início</div>
+                                            <div className="text-sm text-gray-900">{formatTimestamp(audit.createdAt) || 'N/A'}</div>
+                                        </div>
+                                        <div>
+                                            <div className="text-xs text-gray-500">Hora de Conclusão</div>
+                                            <div className="text-sm text-gray-900">{audit.completedAt ? formatTimestamp(audit.completedAt) : 'Em andamento'}</div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-gray-500">Status</div>
+                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${audit.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
+                                            {audit.status === 'pending' ? 'Pendente' : 'Concluída'}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-end items-center gap-2 pt-2 border-t">
+                                        {audit.status === 'pending' ? (
+                                            <>
+                                                <button onClick={() => onContinue(audit.id)} className="px-3 py-1 text-xs font-medium rounded-md text-blue-800 bg-blue-100 hover:bg-blue-200">Continuar</button>
+                                                {(userData.role === 'admin' || userData.uid === audit.userId) && (
+                                                    <button onClick={() => handleStatusChange(audit.id, 'completed')} className="px-3 py-1 text-xs font-medium rounded-md text-green-800 bg-green-100 hover:bg-green-200">Concluir</button>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <button onClick={() => onView(audit.id)} className="px-3 py-1 text-xs font-medium rounded-md text-indigo-800 bg-indigo-100 hover:bg-indigo-200">Visualizar</button>
+                                        )}
+                                        <button onClick={() => exportToCSV(audit.id)} className="px-3 py-1 text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200">CSV</button>
+                                    </div>
+                                </div>
+                            )) : <div className="text-center py-10 text-gray-500">Nenhuma auditoria encontrada.</div>}
+                        </div>
+                        
+                        {/* Desktop View */}
+                        <div className="hidden md:block bg-white rounded-xl shadow-lg overflow-hidden">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID / Resumo</th>
-                                        {userData.role === 'admin' && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Auditor</th>}
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID / Auditor</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resumo</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora de Início</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora de Conclusão</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                                     </tr>
@@ -937,14 +1101,17 @@
                                         <tr key={audit.id}>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                                                 <div className="font-mono text-gray-600">{audit.id}</div>
+                                                {userData.role === 'admin' && <div className="text-xs text-gray-500 mt-1">{audit.userFullName}</div>}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 {audit.firstEntrySummary && (
-                                                    <div className="text-xs text-gray-500 mt-1">
+                                                    <div className="text-xs">
                                                         {audit.firstEntrySummary.auditedEntity} / {audit.firstEntrySummary.operationalZone}
                                                     </div>
                                                 )}
                                             </td>
-                                            {userData.role === 'admin' && <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{audit.userFullName}</td>}
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{audit.createdAt ? new Date(audit.createdAt.seconds * 1000).toLocaleDateString('pt-BR') : 'N/A'}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatTimestamp(audit.createdAt) || 'N/A'}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{audit.completedAt ? formatTimestamp(audit.completedAt) : 'Em andamento'}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${audit.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
                                                 {audit.status === 'pending' ? 'Pendente' : 'Concluída'}
@@ -967,7 +1134,7 @@
                                             </td>
                                         </tr>
                                     )) : (
-                                        <tr><td colSpan="5" className="text-center py-10 text-gray-500">Nenhuma auditoria encontrada.</td></tr>
+                                        <tr><td colSpan="6" className="text-center py-10 text-gray-500">Nenhuma auditoria encontrada.</td></tr>
                                     )}
                                 </tbody>
                             </table>
