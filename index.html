@@ -30,7 +30,8 @@
         onAuthStateChanged,
         createUserWithEmailAndPassword,
         signInWithEmailAndPassword,
-        signOut
+        signOut,
+        sendPasswordResetEmail
       } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
       import { 
         getFirestore, 
@@ -173,6 +174,8 @@
               return <LoginPage setView={handleNavigate} setError={setError} setLoading={setLoading} />;
             case 'register':
               return <RegisterPage setView={handleNavigate} setError={setError} setLoading={setLoading} />;
+            case 'forgotPassword':
+              return <ForgotPasswordPage setView={handleNavigate} setError={setError} setLoading={setLoading} />;
             case 'home':
               return <HomePage userData={userData} setView={handleNavigate} handleLogout={handleLogout} handleNewAudit={handleNewAudit} />;
             case 'audit':
@@ -197,7 +200,6 @@
         );
       }
       
-      // LoginPage, RegisterPage, AccountPage (sem alterações)
       function LoginPage({ setView, setError, setLoading }) {
         const [email, setEmail] = React.useState('');
         const [password, setPassword] = React.useState('');
@@ -223,7 +225,7 @@
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-50">
                 <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg">
-                    <h1 className="text-3xl font-bold text-center text-gray-800">PolarAUD</h1>
+                    <img src="https://i.imgur.com/TN9JSD7.png" alt="Logo da PolarAUD" className="mx-auto h-20 w-auto" />
                     <p className="text-center text-gray-500">Acesse sua conta de auditoria</p>
                     <form onSubmit={handleLogin} className="space-y-6">
                         <div>
@@ -234,9 +236,57 @@
                             <label className="text-sm font-medium text-gray-600">Senha</label>
                             <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-2 mt-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="********" />
                         </div>
+                        <div className="flex items-center justify-between">
+                            <button type="button" onClick={() => setView('forgotPassword')} className="text-sm text-blue-600 hover:underline">Esqueceu a senha?</button>
+                        </div>
                         <button type="submit" className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-300">Entrar</button>
                     </form>
                     <p className="text-sm text-center text-gray-500">Não tem uma conta? <button onClick={() => setView('register')} className="font-medium text-blue-600 hover:underline">Registre-se</button></p>
+                </div>
+            </div>
+        );
+      }
+
+      function ForgotPasswordPage({ setView, setError, setLoading }) {
+        const [email, setEmail] = React.useState('');
+        const [message, setMessage] = React.useState('');
+
+        const handleResetPassword = async (e) => {
+            e.preventDefault();
+            if (!email) {
+                setError("Por favor, insira seu e-mail.");
+                return;
+            }
+            setLoading(true);
+            setError('');
+            setMessage('');
+            try {
+                await sendPasswordResetEmail(auth, email);
+                setMessage("E-mail de redefinição enviado! Verifique sua caixa de entrada e pasta de spam.");
+            } catch (err) {
+                setError("Falha ao enviar e-mail. Verifique se o e-mail está correto.");
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-gray-50">
+                <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg">
+                    <h1 className="text-2xl font-bold text-center text-gray-800">Redefinir Senha</h1>
+                    <p className="text-center text-gray-500">Insira seu e-mail para receber o link de redefinição.</p>
+                    {message && <p className="text-center text-green-600 bg-green-50 p-3 rounded-lg">{message}</p>}
+                    <form onSubmit={handleResetPassword} className="space-y-6">
+                        <div>
+                            <label className="text-sm font-medium text-gray-600">Email</label>
+                            <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-2 mt-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="seu.email@exemplo.com" required />
+                        </div>
+                        <button type="submit" className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-300">Enviar E-mail</button>
+                    </form>
+                    <p className="text-sm text-center text-gray-500">
+                        <button onClick={() => setView('login')} className="font-medium text-blue-600 hover:underline">Voltar para o Login</button>
+                    </p>
                 </div>
             </div>
         );
@@ -387,7 +437,7 @@
         return (
             <div className="p-4 md:p-8">
                 <header className="flex justify-between items-center mb-8">
-                    <h1 className="text-2xl md:text-3xl font-bold text-gray-800">PolarAUD</h1>
+                    <img src="https://i.imgur.com/TN9JSD7.png" alt="Logo da PolarAUD" className="h-12 w-auto" />
                     <div className="relative">
                         <button onClick={() => setShowMenu(!showMenu)} className="flex items-center space-x-2 p-2 rounded-full bg-white shadow">
                             <span className="font-medium text-gray-700 hidden md:block">{userData?.fullName}</span>
