@@ -193,7 +193,7 @@
 
         return (
           <div className="min-h-screen bg-gray-100">
-            {loading && <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"><div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div><p className="ml-4 text-white">Processando...</p></div>}
+            {loading && !view.includes('audit') && <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"><div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div><p className="ml-4 text-white">Processando...</p></div>}
             {error && <div className="fixed top-5 right-5 bg-red-500 text-white p-3 rounded-lg shadow-lg animate-pulse" onClick={() => setError('')}>{error}</div>}
             {renderView()}
           </div>
@@ -225,7 +225,7 @@
         return (
             <div className="flex items-center justify-center min-h-screen bg-gray-50">
                 <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg">
-                    <img src="https://i.imgur.com/TN9JSD7.png" alt="Logo da PolarAUD" className="mx-auto h-60 w-auto" />
+                    <img src="https://i.imgur.com/TN9JSD7.png" alt="Logo da PolarAUD" className="mx-auto h-52 w-auto" />
                     <p className="text-center text-gray-500">Acesse sua conta de auditoria</p>
                     <form onSubmit={handleLogin} className="space-y-6">
                         <div>
@@ -473,6 +473,30 @@
         const [entries, setEntries] = React.useState([]);
         const [isSaving, setIsSaving] = React.useState(false);
         const [globalError, setGlobalError] = React.useState('');
+        const [loadingMessage, setLoadingMessage] = React.useState('');
+
+        const loadingMessages = [
+            "Estamos salvando sua auditoria...",
+            "Aguarde...",
+            "Salvando evidências...",
+            "Pode demorar um pouco...",
+            "Garanta uma conexão estável durante o salvamento"
+        ];
+
+        React.useEffect(() => {
+            let interval;
+            if (isSaving) {
+                setLoadingMessage(loadingMessages[0]);
+                interval = setInterval(() => {
+                    setLoadingMessage(prev => {
+                        const currentIndex = loadingMessages.indexOf(prev);
+                        const nextIndex = (currentIndex + 1) % loadingMessages.length;
+                        return loadingMessages[nextIndex];
+                    });
+                }, 3000);
+            }
+            return () => clearInterval(interval);
+        }, [isSaving]);
 
         const base64ToFile = (base64, filename, mimeType) => {
             const byteCharacters = atob(base64.split(',')[1]);
@@ -654,11 +678,13 @@
             try {
                 let currentAuditId = auditId;
                 const firstEntry = entries[0];
+                
                 const summaryData = {
                     firstEntrySummary: {
                         auditedEntity: firstEntry.auditedEntity,
                         operationalZone: firstEntry.operationalZone
-                    }
+                    },
+                    entryCount: entries.length
                 };
 
                 if (!currentAuditId) {
@@ -748,7 +774,14 @@
         };
 
         return (
-            <div className="p-4 md:p-8 max-w-4xl mx-auto">
+            <>
+            {isSaving && (
+                <div className="fixed inset-0 bg-black bg-opacity-75 flex flex-col justify-center items-center z-50">
+                    <div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32 mb-4"></div>
+                    <p className="text-white text-xl">{loadingMessage}</p>
+                </div>
+            )}
+            <div className={`p-4 md:p-8 max-w-4xl mx-auto ${isSaving ? 'pointer-events-none' : ''}`}>
                 <header className="flex justify-between items-center mb-6">
                     <h1 className="text-2xl font-bold text-gray-800">{auditId ? 'Continuar Auditoria' : 'Nova Auditoria'}</h1>
                     <button onClick={() => setView('home')} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-lg shadow-sm hover:bg-gray-50">Voltar</button>
@@ -814,6 +847,7 @@
                     </button>
                 </div>
             </div>
+            </>
         );
       }
       
@@ -1032,7 +1066,7 @@
                 {loading ? <div className="text-center p-10">Carregando histórico...</div> : error ? <div className="text-center p-10 text-red-500">{error}</div> : (
                     <div className="space-y-4">
                         {/* Mobile View */}
-                        <div className="md:hidden">
+                        <div className="md:hidden space-y-4">
                             {filteredAudits.length > 0 ? filteredAudits.map(audit => (
                                 <div key={audit.id} className="bg-white p-4 rounded-lg shadow space-y-3">
                                     <div>
@@ -1043,6 +1077,7 @@
                                                 {audit.firstEntrySummary.auditedEntity} / {audit.firstEntrySummary.operationalZone}
                                             </div>
                                         )}
+                                        <div className="text-xs text-gray-600 mt-1">Apontamentos: {audit.entryCount || 0}</div>
                                     </div>
                                     {userData.role === 'admin' && (
                                          <div>
@@ -1109,6 +1144,7 @@
                                                         {audit.firstEntrySummary.auditedEntity} / {audit.firstEntrySummary.operationalZone}
                                                     </div>
                                                 )}
+                                                <div className="text-xs text-gray-600 mt-1">Apontamentos: {audit.entryCount || 0}</div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatTimestamp(audit.createdAt) || 'N/A'}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{audit.completedAt ? formatTimestamp(audit.completedAt) : 'Em andamento'}</td>
