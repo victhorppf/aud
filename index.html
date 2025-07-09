@@ -185,7 +185,7 @@
             case 'account':
               return <AccountPage userData={userData} setUserData={setUserData} setView={handleNavigate} />;
             case 'viewAudit':
-              return <ViewAuditPage setView={handleNavigate} auditId={selectedAuditId} />;
+              return <ViewAuditPage userData={userData} setView={handleNavigate} auditId={selectedAuditId} setLoading={setLoading} setError={setError} />;
             default:
               return <LoginPage setView={handleNavigate} setError={setError} setLoading={setLoading} />;
           }
@@ -676,59 +676,23 @@
             setGlobalError('');
 
             try {
-                let currentAuditId = auditId;
-                const firstEntry = entries[0];
-                
-                const summaryData = {
-                    firstEntrySummary: {
-                        auditedEntity: firstEntry.auditedEntity,
-                        operationalZone: firstEntry.operationalZone
-                    },
-                    entryCount: entries.length
-                };
-
-                if (!currentAuditId) {
-                    const auditData = {
-                        userId: userData.uid,
-                        userFullName: userData.fullName,
-                        createdAt: serverTimestamp(),
-                        status: "pending",
-                        ...summaryData
-                    };
-                    const auditRef = await addDoc(collection(db, "audits"), auditData);
-                    currentAuditId = auditRef.id;
-                } else {
-                    await updateDoc(doc(db, "audits", currentAuditId), summaryData);
-                }
-
-                const batch = writeBatch(db);
-                const oldEntriesSnapshot = await getDocs(collection(db, "audits", currentAuditId, "entries"));
-                oldEntriesSnapshot.forEach(doc => batch.delete(doc.ref));
-                await batch.commit();
-                
-                const addBatch = writeBatch(db);
-
-                for (const [index, entry] of entries.entries()) {
-                    let finalEvidenceUrls = {};
+                // 1. Processar todas as imagens primeiro
+                const allEvidencePromises = entries.map(async (entry, index) => {
                     const localImagesToUpload = entry.evidences.filter(ev => ev.type === 'local');
                     const remoteImagesToKeep = entry.evidences.filter(ev => ev.type === 'remote');
-
+                    
+                    const finalEvidenceUrls = {};
                     remoteImagesToKeep.forEach(ev => {
                         finalEvidenceUrls[ev.key] = ev.fileId;
                     });
-                    
+
                     if (localImagesToUpload.length > 0) {
                         const imagePayload = localImagesToUpload.map((ev, localIndex) => {
                             const timestamp = getTimestampString();
                             const safeEntity = entry.auditedEntity.replace(/[^a-zA-Z0-9]/g, '');
                             const safeZone = entry.operationalZone.replace(/[^a-zA-Z0-9]/g, '');
                             const fileName = `AUD_${safeEntity}_${safeZone}_AP${entry.entryNumber}_EV${remoteImagesToKeep.length + localIndex + 1}_${timestamp}`;
-                            
-                            return {
-                                base64: ev.base64.split(',')[1],
-                                mimeType: ev.file.type,
-                                fileName: fileName
-                            };
+                            return { base64: ev.base64.split(',')[1], mimeType: ev.file.type, fileName: fileName };
                         });
 
                         const response = await fetch(IMAGE_API_URL, {
@@ -745,22 +709,52 @@
                             finalEvidenceUrls[fileInfo.key] = fileInfo.id;
                         });
                     }
+                    return { ...entry, evidenceUrls: finalEvidenceUrls };
+                });
 
-                    const entryRef = doc(collection(db, "audits", currentAuditId, "entries"));
-                    addBatch.set(entryRef, {
-                        entryNumber: index + 1,
-                        entryTimestamp: serverTimestamp(),
-                        auditedEntity: entry.auditedEntity,
-                        operationalZone: entry.operationalZone,
-                        technicalSector: userData.sector,
-                        location: entry.location,
-                        description: entry.description.toUpperCase(),
-                        complement: entry.complement,
-                        evidenceUrls: finalEvidenceUrls
+                const entriesWithUrls = await Promise.all(allEvidencePromises);
+
+                // 2. Agora, fazer a transação no Firestore
+                const batch = writeBatch(db);
+                let currentAuditId = auditId;
+
+                const firstEntry = entries[0];
+                const summaryData = {
+                    firstEntrySummary: {
+                        auditedEntity: firstEntry.auditedEntity,
+                        operationalZone: firstEntry.operationalZone
+                    },
+                    entryCount: entries.length
+                };
+
+                if (!currentAuditId) {
+                    const auditRef = doc(collection(db, "audits"));
+                    currentAuditId = auditRef.id;
+                    batch.set(auditRef, {
+                        userId: userData.uid,
+                        userFullName: userData.fullName,
+                        createdAt: serverTimestamp(),
+                        status: "pending",
+                        ...summaryData
                     });
+                } else {
+                    const auditRef = doc(db, "audits", currentAuditId);
+                    batch.update(auditRef, summaryData);
+
+                    const oldEntriesSnapshot = await getDocs(collection(db, "audits", currentAuditId, "entries"));
+                    oldEntriesSnapshot.forEach(doc => batch.delete(doc.ref));
                 }
+
+                entriesWithUrls.forEach((entry, index) => {
+                    const entryRef = doc(collection(db, "audits", currentAuditId, "entries"));
+                    const { evidences, id, ...entryToSave } = entry; // Remove dados do rascunho
+                    batch.set(entryRef, {
+                        ...entryToSave,
+                        entryTimestamp: serverTimestamp()
+                    });
+                });
                 
-                await addBatch.commit();
+                await batch.commit();
                 await clearDraft();
                 alert("Auditoria salva com sucesso!");
                 setView('home');
@@ -918,6 +912,35 @@
                     completedAt: serverTimestamp()
                 });
                 fetchAudits();
+            }
+        };
+
+        const handleDeleteAudit = async (auditId) => {
+            if (window.confirm("Tem certeza que deseja apagar esta auditoria permanentemente? Esta ação não pode ser desfeita.")) {
+                setLoading(true);
+                setError(null);
+                try {
+                    const entriesRef = collection(db, "audits", auditId, "entries");
+                    const entriesSnapshot = await getDocs(entriesRef);
+                    
+                    const batch = writeBatch(db);
+                    
+                    entriesSnapshot.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+                    
+                    batch.delete(doc(db, "audits", auditId));
+                    
+                    await batch.commit();
+
+                    alert("Auditoria apagada com sucesso!");
+                    fetchAudits(); // Refresh the list
+                } catch (err) {
+                    console.error("Erro ao apagar auditoria:", err);
+                    setError("Falha ao apagar a auditoria. Verifique as permissões e tente novamente.");
+                } finally {
+                    setLoading(false);
+                }
             }
         };
         
@@ -1112,6 +1135,9 @@
                                         ) : (
                                             <button onClick={() => onView(audit.id)} className="px-3 py-1 text-xs font-medium rounded-md text-indigo-800 bg-indigo-100 hover:bg-indigo-200">Visualizar</button>
                                         )}
+                                        {(userData.role === 'admin' || (audit.userId === userData.uid && audit.status === 'pending')) && (
+                                            <button onClick={() => handleDeleteAudit(audit.id)} className="px-3 py-1 text-xs font-medium rounded-md text-red-800 bg-red-100 hover:bg-red-200">Apagar</button>
+                                        )}
                                         <button onClick={() => exportToCSV(audit.id)} className="px-3 py-1 text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200">CSV</button>
                                     </div>
                                 </div>
@@ -1165,6 +1191,9 @@
                                                     ) : (
                                                         <button onClick={() => onView(audit.id)} className="px-3 py-1 text-xs font-medium rounded-md text-indigo-800 bg-indigo-100 hover:bg-indigo-200">Visualizar</button>
                                                     )}
+                                                     {(userData.role === 'admin' || (audit.userId === userData.uid && audit.status === 'pending')) && (
+                                                        <button onClick={() => handleDeleteAudit(audit.id)} className="px-3 py-1 text-xs font-medium rounded-md text-red-800 bg-red-100 hover:bg-red-200">Apagar</button>
+                                                    )}
                                                     <button onClick={() => exportToCSV(audit.id)} className="px-3 py-1 text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200">CSV</button>
                                                 </div>
                                             </td>
@@ -1181,17 +1210,17 @@
         );
       }
 
-      function ViewAuditPage({ setView, auditId }) {
+      function ViewAuditPage({ setView, auditId, userData, setLoading, setError }) {
         const [audit, setAudit] = React.useState(null);
         const [entries, setEntries] = React.useState([]);
-        const [loading, setLoading] = React.useState(true);
-        const [error, setError] = React.useState('');
+        const [loadingData, setLoadingData] = React.useState(true);
+        const [errorData, setErrorData] = React.useState('');
         const [selectedImage, setSelectedImage] = React.useState(null);
 
         React.useEffect(() => {
             if (!auditId) {
-                setError("Nenhuma auditoria selecionada.");
-                setLoading(false);
+                setErrorData("Nenhuma auditoria selecionada.");
+                setLoadingData(false);
                 return;
             }
             const fetchAuditData = async () => {
@@ -1209,16 +1238,43 @@
                     setEntries(entriesData);
                 } catch (e) {
                     console.error("Erro ao carregar auditoria para visualização:", e);
-                    setError(e.message);
+                    setErrorData(e.message);
                 } finally {
-                    setLoading(false);
+                    setLoadingData(false);
                 }
             };
             fetchAuditData();
         }, [auditId]);
 
-        if (loading) return <div className="flex justify-center items-center h-screen"><div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div></div>;
-        if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
+        const handleDeleteAudit = async () => {
+            if (window.confirm("Tem certeza que deseja apagar esta auditoria permanentemente? Esta ação não pode ser desfeita.")) {
+                setLoading(true);
+                setError('');
+                try {
+                    const entriesRef = collection(db, "audits", auditId, "entries");
+                    const entriesSnapshot = await getDocs(entriesRef);
+                    const deleteBatch = writeBatch(db);
+                    entriesSnapshot.forEach(doc => {
+                        deleteBatch.delete(doc.ref);
+                    });
+                    
+                    deleteBatch.delete(doc(db, "audits", auditId));
+
+                    await deleteBatch.commit();
+
+                    alert("Auditoria apagada com sucesso!");
+                    setView('history');
+                } catch (err) {
+                    console.error("Erro ao apagar auditoria:", err);
+                    setError("Falha ao apagar a auditoria. Tente novamente.");
+                } finally {
+                    setLoading(false);
+                }
+            }
+        };
+
+        if (loadingData) return <div className="flex justify-center items-center h-screen"><div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div></div>;
+        if (errorData) return <div className="p-8 text-center text-red-500">{errorData}</div>;
 
         return (
             <div className="p-4 md:p-8 max-w-4xl mx-auto">
@@ -1262,6 +1318,15 @@
                         </div>
                     ))}
                 </div>
+
+                {audit && (userData.role === 'admin' || (audit.userId === userData.uid && audit.status === 'pending')) && (
+                    <div className="mt-8 flex justify-end">
+                        <button onClick={handleDeleteAudit} className="px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors">
+                            <i className="fas fa-trash-alt mr-2"></i> Apagar Auditoria
+                        </button>
+                    </div>
+                )}
+
 
                 {selectedImage && (
                     <div 
