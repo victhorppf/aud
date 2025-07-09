@@ -279,7 +279,7 @@
             case 'account':
               return <AccountPage userData={userData} setUserData={setUserData} setView={handleNavigate} notify={notify} />;
             case 'viewAudit':
-              return <ViewAuditPage userData={userData} setView={handleNavigate} auditId={selectedAuditId} setLoading={setLoading} notify={notify} />;
+              return <ViewAuditPage userData={userData} setView={handleNavigate} auditId={selectedAuditId} notify={notify} setLoading={setLoading} />;
             default:
               return <LoginPage setView={handleNavigate} notify={notify} setLoading={setLoading} />;
           }
@@ -938,9 +938,9 @@
         );
       }
       
-      function HistoryPage({ userData, setView, onContinue, onView, notify }) {
+      function HistoryPage({ userData, setView, onContinue, onView, notify, setLoading }) {
         const [audits, setAudits] = React.useState([]);
-        const [loading, setLoading] = React.useState(true);
+        const [loadingData, setLoadingData] = React.useState(true);
         const [error, setError] = React.useState(null);
         const [filter, setFilter] = React.useState('');
         const [showExportModal, setShowExportModal] = React.useState(false);
@@ -962,10 +962,10 @@
 
         const fetchAudits = async () => {
             if (!userData) {
-                setLoading(false);
+                setLoadingData(false);
                 return;
             }
-            setLoading(true);
+            setLoadingData(true);
             setError(null);
             try {
                 const q = userData.role === 'admin' 
@@ -990,7 +990,7 @@
                 console.error("Erro ao buscar auditorias:", err);
                 setError("Não foi possível carregar o histórico. Tente novamente mais tarde.");
             } finally {
-                setLoading(false);
+                setLoadingData(false);
             }
         };
 
@@ -1021,6 +1021,7 @@
                 color: 'red',
                 onConfirm: async () => {
                     setLoading(true);
+                    setConfirmAction(null);
                     try {
                         const entriesRef = collection(db, "audits", auditId, "entries");
                         const entriesSnapshot = await getDocs(entriesRef);
@@ -1042,7 +1043,6 @@
                         notify("Falha ao apagar a auditoria. Verifique as permissões e tente novamente.", "error");
                     } finally {
                         setLoading(false);
-                        setConfirmAction(null);
                     }
                 }
             });
@@ -1191,7 +1191,7 @@
                     </div>
                 )}
 
-                {loading ? <div className="text-center p-10">Carregando histórico...</div> : error ? <div className="text-center p-10 text-red-500">{error}</div> : (
+                {loadingData ? <div className="text-center p-10">Carregando histórico...</div> : error ? <div className="text-center p-10 text-red-500">{error}</div> : (
                     <div className="space-y-4">
                         {/* Mobile View */}
                         <div className="md:hidden space-y-4">
@@ -1315,13 +1315,14 @@
         );
       }
 
-      function ViewAuditPage({ setView, auditId, userData, setLoading, notify }) {
+      function ViewAuditPage({ setView, auditId, userData, notify }) {
         const [audit, setAudit] = React.useState(null);
         const [entries, setEntries] = React.useState([]);
         const [loadingData, setLoadingData] = React.useState(true);
         const [errorData, setErrorData] = React.useState('');
         const [selectedImage, setSelectedImage] = React.useState(null);
         const [confirmAction, setConfirmAction] = React.useState(null);
+        const [loading, setLoading] = React.useState(false);
 
         React.useEffect(() => {
             if (!auditId) {
@@ -1382,6 +1383,76 @@
                 }
             });
         };
+        
+        const exportToCSV = async (auditIdToExport) => {
+            if (!auditIdToExport) {
+                notify("ID da auditoria não encontrado.", "error");
+                return;
+            }
+
+            setLoading(true);
+            try {
+                let entriesToExport = [];
+                let fileName = `auditoria_${auditIdToExport}.csv`;
+
+                const auditDoc = await getDoc(doc(db, "audits", auditIdToExport));
+                if (!auditDoc.exists()) {
+                    notify("Auditoria não encontrada.", "error");
+                    setLoading(false);
+                    return;
+                }
+                const auditData = auditDoc.data();
+
+                const entriesSnapshot = await getDocs(collection(db, "audits", auditIdToExport, "entries"));
+                entriesSnapshot.forEach(entryDoc => {
+                    entriesToExport.push({ ...entryDoc.data(), userFullName: auditData.userFullName });
+                });
+
+                if (entriesToExport.length === 0) {
+                    notify("Nenhum apontamento encontrado para exportar.", "warning");
+                    setLoading(false);
+                    return;
+                }
+
+                const headers = "Numero_Apontamento,Auditor,Data_Hora_Apontamento,Zona_Operacional,Setor_Tecnico,Orgao_Anuente_Auditado,Local,Descricao_Apontamento,Complemento,Evidencia_1,Evidencia_2,Evidencia_3";
+                const csvRows = [headers];
+
+                entriesToExport.sort((a, b) => a.entryNumber - b.entryNumber).forEach(entry => {
+                    const row = [
+                        entry.entryNumber,
+                        `"${entry.userFullName || ''}"`,
+                        `"${entry.entryTimestamp ? new Date(entry.entryTimestamp.seconds * 1000).toLocaleString('pt-BR') : 'N/A'}"`,
+                        `"${entry.operationalZone || ''}"`,
+                        `"${entry.technicalSector || ''}"`,
+                        `"${entry.auditedEntity || ''}"`,
+                        `"${entry.location || ''}"`,
+                        `"${(entry.description || '').replace(/"/g, '""')}"`,
+                        `"${(entry.complement || '').replace(/"/g, '""')}"`,
+                        entry.evidenceUrls?.evidence_1 ? `https://drive.google.com/file/d/${entry.evidenceUrls.evidence_1}/view` : '',
+                        entry.evidenceUrls?.evidence_2 ? `https://drive.google.com/file/d/${entry.evidenceUrls.evidence_2}/view` : '',
+                        entry.evidenceUrls?.evidence_3 ? `https://drive.google.com/file/d/${entry.evidenceUrls.evidence_3}/view` : '',
+                    ];
+                    csvRows.push(row.join(','));
+                });
+
+                const csvString = csvRows.join('\n');
+                const blob = new Blob([`\uFEFF${csvString}`], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", fileName);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                notify("Exportação concluída!", "success");
+
+            } catch (err) {
+                console.error("Erro ao exportar CSV:", err);
+                notify("Falha ao exportar CSV.", "error");
+            } finally {
+                setLoading(false);
+            }
+        };
 
         if (loadingData) return <div className="flex justify-center items-center h-screen"><div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div></div>;
         if (errorData) return <div className="p-8 text-center text-red-500">{errorData}</div>;
@@ -1430,13 +1501,16 @@
                     ))}
                 </div>
 
-                {audit && (userData.role === 'admin' || (audit.userId === userData.uid && audit.status === 'pending')) && (
-                    <div className="mt-8 flex justify-end">
+                <div className="mt-8 flex justify-end gap-4">
+                    <button onClick={() => exportToCSV(auditId)} className="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors">
+                        <i className="fas fa-file-csv mr-2"></i> Exportar CSV
+                    </button>
+                    {audit && (userData.role === 'admin' || (audit.userId === userData.uid && audit.status === 'pending')) && (
                         <button onClick={handleDeleteAudit} className="px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors">
                             <i className="fas fa-trash-alt mr-2"></i> Apagar Auditoria
                         </button>
-                    </div>
-                )}
+                    )}
+                </div>
 
 
                 {selectedImage && (
