@@ -1585,7 +1585,7 @@
                                     <strong className="block mb-2">Evidências:</strong>
                                     <div className="flex flex-wrap gap-4">
                                         {entry.evidenceUrls && Object.keys(entry.evidenceUrls).length > 0 ? Object.values(entry.evidenceUrls).map((fileId, evIndex) => (
-                                            <button key={evIndex} onClick={() => setSelectedImage(`https://drive.google.com/uc?id=${fileId}`)}>
+                                            <button key={evIndex} onClick={() => setSelectedImage(`https://drive.google.com/thumbnail?id=${fileId}&sz=w1280`)}>
                                                 <img src={`https://drive.google.com/thumbnail?id=${fileId}&sz=s220`} alt={`Evidência ${evIndex + 1}`} className="w-32 h-32 object-cover rounded-lg shadow-md hover:scale-105 transition-transform cursor-pointer" />
                                             </button>
                                         )) : <p className="text-gray-500">Nenhuma evidência fotográfica.</p>}
