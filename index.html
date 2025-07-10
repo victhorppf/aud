@@ -844,6 +844,8 @@
                     const { evidences, id, ...entryToSave } = entry; // Remove dados do rascunho
                     batch.set(entryRef, {
                         ...entryToSave,
+                        userId: userData.uid, // <-- ADICIONE ESTA LINHA
+                        technicalSector: userData.sector, // (Mantendo a correção do problema do setor)
                         entryTimestamp: serverTimestamp()
                     });
                 });
