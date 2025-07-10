@@ -695,6 +695,7 @@
                 newEntryData.auditedEntity = lastEntry.auditedEntity;
                 newEntryData.operationalZone = lastEntry.operationalZone;
                 newEntryData.location = lastEntry.location;
+                newEntryData.responsibleSector = lastEntry.responsibleSector; // FIX: Pre-fill responsible sector
             } else {
                 newEntryData.auditedEntity = AUDITED_ENTITIES[0];
                 newEntryData.operationalZone = Object.keys(ZONES)[0];
@@ -1007,8 +1008,9 @@
         const [confirmAction, setConfirmAction] = React.useState(null);
 
         const formatTimestamp = (timestamp) => {
-            if (!timestamp || !timestamp.seconds) return null;
-            const date = new Date(timestamp.seconds * 1000);
+            if (!timestamp) return null;
+            // Can be a Firestore Timestamp or a JS Date object
+            const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
             return date.toLocaleString('pt-BR', {
                 day: '2-digit',
                 month: '2-digit',
@@ -1166,7 +1168,7 @@
                         `"${entry.auditTitle || ''}"`,
                         entry.entryNumber,
                         `"${entry.userFullName || ''}"`,
-                        `"${entry.entryTimestamp ? new Date(entry.entryTimestamp.seconds * 1000).toLocaleString('pt-BR') : 'N/A'}"`,
+                        `"${formatTimestamp(entry.entryTimestamp) || 'N/A'}"`,
                         `"${entry.operationalZone || ''}"`,
                         `"${entry.technicalSector || ''}"`,
                         `"${entry.responsibleSector || ''}"`,
@@ -1395,6 +1397,19 @@
         const [selectedImage, setSelectedImage] = React.useState(null);
         const [confirmAction, setConfirmAction] = React.useState(null);
 
+        const formatTimestamp = (timestamp) => {
+            if (!timestamp) return null;
+            // Can be a Firestore Timestamp or a JS Date object
+            const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
+            return date.toLocaleString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        };
+
         React.useEffect(() => {
             if (!auditId) {
                 setErrorData("Nenhuma auditoria selecionada.");
@@ -1498,7 +1513,7 @@
                         `"${entry.auditTitle || ''}"`,
                         entry.entryNumber,
                         `"${entry.userFullName || ''}"`,
-                        `"${entry.entryTimestamp ? new Date(entry.entryTimestamp.seconds * 1000).toLocaleString('pt-BR') : 'N/A'}"`,
+                        `"${formatTimestamp(entry.entryTimestamp) || 'N/A'}"`,
                         `"${entry.operationalZone || ''}"`,
                         `"${entry.technicalSector || ''}"`,
                         `"${entry.responsibleSector || ''}"`,
