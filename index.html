@@ -123,6 +123,7 @@
       // Dados estáticos da aplicação
       const SECTORS = ["SESMT","CONSULTORIA", "CONFORMIDADE", "SEGURANÇA PATRIMONIAL"];
       const AUDITED_ENTITIES = ["RFB", "APPA", "MAPA", "MINISTÉRIOS DO TRABALHO", "CONPORTOS"];
+      const RESPONSIBLE_SECTORS = ["T.I", "MANUTENÇÃO MECÂNICA", "MANUTENÇÃO CIVIL", "SEGURANÇA DO TRABALHO", "ELÉTRICA", "QUALIDADE", "OPERAÇÃO"];
       const ZONES = {
         "ZONA 1": ["Estacionamento Diretoria", "Estacionamento Geral", "Subestação de Energia 1", "Sala Administrativo 1 (Contabilidade, Diretoria, Controladoria etc.)", "Sala Administrativo 2 (Cadastro, T.I, Aduaneiro)", "Sala de Recursos Humanos", "Sala de treinamento", "Guarita", "Sala de apoio", "Lava-car", "Balança (Portaria)", "Central de Resíduos", "Casa de Bombas 1", "AZ-Oficina", "Subestação de Energia 2", "AZ-01", "AZ-02", "AZ-03", "AZ-04", "AZ-17", "AZ-18", "AZ-28", "Balança (Lado AZ-28)", "Central de Fertilizantes", "Posto", "Refeitório", "Sala CCOM"],
         "ZONA 2": ["Scanner", "Atracadouro", "Marégrafo", "AZ-05", "AZ-06", "AZ-07", "AZ-11", "Castelo D’água", "Sala Oficina", "Sala Almoxarifado", "Sala SESMT", "Sala Operações", "Sala Manutenção Eletrica", "Subestação de Energia 3", "Subestação de Energia 4", "Casa de Bombas 2", "Berço de Atracação 1", "Berço de Atracação 2"],
@@ -560,6 +561,7 @@
       }
 
       function AuditForm({ userData, setView, auditId, notify }) {
+        const [auditTitle, setAuditTitle] = React.useState('');
         const [entries, setEntries] = React.useState([]);
         const [isSaving, setIsSaving] = React.useState(false);
         const [loadingMessage, setLoadingMessage] = React.useState('');
@@ -603,6 +605,11 @@
                 if (auditId) { // MODO CONTINUAR
                     setIsSaving(true);
                     try {
+                        const auditDoc = await getDoc(doc(db, "audits", auditId));
+                        if (auditDoc.exists()) {
+                            setAuditTitle(auditDoc.data().title || '');
+                        }
+
                         const entriesQuery = query(collection(db, "audits", auditId, "entries"));
                         const entriesSnapshot = await getDocs(entriesQuery);
                         const fetchedEntries = entriesSnapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
@@ -626,17 +633,22 @@
                     }
                 } else { // MODO NOVA AUDITORIA
                     const draft = await loadDraft();
-                    if (draft && draft.length > 0) {
-                        const restoredEntries = draft.map(entry => ({
-                            ...entry,
-                            evidences: entry.evidences.map(ev => ({
-                                ...ev, 
-                                type: 'local',
-                                file: base64ToFile(ev.base64, ev.file.name, ev.file.type),
-                                preview: URL.createObjectURL(base64ToFile(ev.base64, ev.file.name, ev.file.type))
-                            }))
-                        }));
-                        setEntries(restoredEntries);
+                    if (draft) {
+                         setAuditTitle(draft.title || '');
+                         if (draft.entries && draft.entries.length > 0) {
+                            const restoredEntries = draft.entries.map(entry => ({
+                                ...entry,
+                                evidences: entry.evidences.map(ev => ({
+                                    ...ev, 
+                                    type: 'local',
+                                    file: base64ToFile(ev.base64, ev.file.name, ev.file.type),
+                                    preview: URL.createObjectURL(base64ToFile(ev.base64, ev.file.name, ev.file.type))
+                                }))
+                            }));
+                            setEntries(restoredEntries);
+                        } else {
+                            addEntry();
+                        }
                     } else {
                         addEntry();
                     }
@@ -646,17 +658,20 @@
         }, [auditId]);
         
         React.useEffect(() => {
-            if (entries.length > 0 && !auditId) {
-                const draftToSave = entries.map(entry => ({
-                    ...entry,
-                    evidences: entry.evidences.filter(ev => ev.type === 'local').map(ev => ({
-                        base64: ev.base64, 
-                        file: {name: ev.file.name, type: ev.file.type}
+            if (!auditId) { // Only save drafts for new audits
+                const draftToSave = {
+                    title: auditTitle,
+                    entries: entries.map(entry => ({
+                        ...entry,
+                        evidences: entry.evidences.filter(ev => ev.type === 'local').map(ev => ({
+                            base64: ev.base64, 
+                            file: {name: ev.file.name, type: ev.file.type}
+                        }))
                     }))
-                }));
+                };
                 saveDraft(draftToSave);
             }
-        }, [entries, auditId]);
+        }, [entries, auditTitle, auditId]);
 
         const addEntry = () => {
              const newEntryData = {
@@ -664,6 +679,7 @@
                 entryNumber: entries.length + 1,
                 description: '',
                 complement: '',
+                responsibleSector: RESPONSIBLE_SECTORS[0],
                 evidences: []
             };
 
@@ -703,6 +719,13 @@
                 newEntries[index]['location'] = ZONES[value][0];
             }
             setEntries(newEntries);
+        };
+
+        const handleTitleChange = (e) => {
+            const value = e.target.value;
+            // Regex to capitalize the first letter of each word
+            const formattedTitle = value.replace(/\b\w/g, char => char.toUpperCase());
+            setAuditTitle(formattedTitle);
         };
 
         const handleImageChange = async (index, event) => {
@@ -763,8 +786,12 @@
         };
 
         const saveAudit = async () => {
-            if (entries.length === 0 || entries.some(e => !e.description)) {
-                notify("A auditoria precisa ter pelo menos um apontamento com descrição.", "warning");
+            if (!auditTitle.trim()) {
+                 notify("Por favor, insira um título para a auditoria.", "warning");
+                 return;
+            }
+            if (entries.length === 0 || entries.some(e => !e.description || !e.responsibleSector)) {
+                notify("A auditoria precisa ter pelo menos um apontamento com descrição e setor responsável.", "warning");
                 return;
             }
             setIsSaving(true);
@@ -785,7 +812,8 @@
                             const timestamp = getTimestampString();
                             const safeEntity = entry.auditedEntity.replace(/[^a-zA-Z0-9]/g, '');
                             const safeZone = entry.operationalZone.replace(/[^a-zA-Z0-9]/g, '');
-                            const fileName = `AUD_${safeEntity}_${safeZone}_AP${entry.entryNumber}_EV${remoteImagesToKeep.length + localIndex + 1}_${timestamp}`;
+                            const evidenceNumber = remoteImagesToKeep.length + localIndex + 1;
+                            const fileName = `AUD_${safeEntity}_${safeZone}_AP${entry.entryNumber}_EV${evidenceNumber}_${timestamp}`;
                             return { base64: ev.base64.split(',')[1], mimeType: ev.file.type, fileName: fileName };
                         });
 
@@ -813,7 +841,11 @@
                 let currentAuditId = auditId;
 
                 const firstEntry = entries[0];
-                const summaryData = {
+                const auditData = {
+                    userId: userData.uid,
+                    userFullName: userData.fullName,
+                    title: auditTitle,
+                    status: "pending",
                     firstEntrySummary: {
                         auditedEntity: firstEntry.auditedEntity,
                         operationalZone: firstEntry.operationalZone
@@ -824,16 +856,13 @@
                 if (!currentAuditId) {
                     const auditRef = doc(collection(db, "audits"));
                     currentAuditId = auditRef.id;
-                    batch.set(auditRef, {
-                        userId: userData.uid,
-                        userFullName: userData.fullName,
-                        createdAt: serverTimestamp(),
-                        status: "pending",
-                        ...summaryData
-                    });
+                    // Bug Fix: Only set createdAt on initial creation
+                    auditData.createdAt = serverTimestamp();
+                    batch.set(auditRef, auditData);
                 } else {
                     const auditRef = doc(db, "audits", currentAuditId);
-                    batch.update(auditRef, summaryData);
+                    // On update, we don't include createdAt, so it's not overwritten
+                    batch.update(auditRef, auditData);
 
                     const oldEntriesSnapshot = await getDocs(collection(db, "audits", currentAuditId, "entries"));
                     oldEntriesSnapshot.forEach(doc => batch.delete(doc.ref));
@@ -841,11 +870,11 @@
 
                 entriesWithUrls.forEach((entry, index) => {
                     const entryRef = doc(collection(db, "audits", currentAuditId, "entries"));
-                    const { evidences, id, ...entryToSave } = entry; // Remove dados do rascunho
+                    const { evidences, id, ...entryToSave } = entry;
                     batch.set(entryRef, {
                         ...entryToSave,
-                        userId: userData.uid, // <-- ADICIONE ESTA LINHA
-                        technicalSector: userData.sector, // (Mantendo a correção do problema do setor)
+                        userId: userData.uid, // Required for Firestore rules
+                        technicalSector: userData.sector,
                         entryTimestamp: serverTimestamp()
                     });
                 });
@@ -878,6 +907,19 @@
                     <button onClick={() => setView('home')} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-lg shadow-sm hover:bg-gray-50">Voltar</button>
                 </header>
                 
+                <div className="bg-white p-6 rounded-xl shadow-lg mb-6">
+                    <label htmlFor="auditTitle" className="block text-sm font-medium text-gray-700 mb-1">Título da Auditoria</label>
+                    <input 
+                        id="auditTitle"
+                        type="text"
+                        value={auditTitle}
+                        onChange={handleTitleChange}
+                        placeholder="Ex: Auditoria Semanal de Segurança"
+                        className="w-full p-2 bg-gray-50 border rounded-md"
+                        required
+                    />
+                </div>
+
                 <div className="space-y-6">
                     {entries.map((entry, index) => (
                         <div key={entry.id || index} className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500 relative">
@@ -895,12 +937,18 @@
                                     </select>
                                 </div>
                                 <div>
+                                    <label htmlFor={`responsibleSector-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Setor Responsável</label>
+                                    <select id={`responsibleSector-${index}`} value={entry.responsibleSector} onChange={e => updateEntry(index, 'responsibleSector', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md" required>
+                                        {RESPONSIBLE_SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
+                                    </select>
+                                </div>
+                                <div>
                                     <label htmlFor={`operationalZone-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Zona Operacional</label>
                                     <select id={`operationalZone-${index}`} value={entry.operationalZone} onChange={e => updateEntry(index, 'operationalZone', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
                                         {Object.keys(ZONES).map(z => <option key={z} value={z}>{z}</option>)}
                                     </select>
                                 </div>
-                                <div className="md:col-span-2">
+                                <div>
                                     <label htmlFor={`location-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Local</label>
                                     <select id={`location-${index}`} value={entry.location} onChange={e => updateEntry(index, 'location', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
                                         {ZONES[entry.operationalZone].map(l => <option key={l} value={l}>{l}</option>)}
@@ -946,8 +994,9 @@
         const [error, setError] = React.useState(null);
         const [filter, setFilter] = React.useState('');
         const [showExportModal, setShowExportModal] = React.useState(false);
-        const [usersForExport, setUsersForExport] = React.useState([]);
-        const [selectedUserIds, setSelectedUserIds] = React.useState([]);
+        const [selectedAuditIds, setSelectedAuditIds] = React.useState([]);
+        const [startDate, setStartDate] = React.useState('');
+        const [endDate, setEndDate] = React.useState('');
         const [confirmAction, setConfirmAction] = React.useState(null);
 
         const formatTimestamp = (timestamp) => {
@@ -978,15 +1027,6 @@
                 const auditsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 auditsData.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 
-                if(userData.role === 'admin') {
-                    const allAuditsSnapshot = await getDocs(query(collection(db, "audits")));
-                    const allAuditsData = allAuditsSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-                    const uniqueUsers = [...new Map(allAuditsData.map(audit => 
-                        (audit.userId && audit.userFullName) ? [audit.userId, {id: audit.userId, name: audit.userFullName}] : null
-                    ).filter(Boolean)).values()];
-                    setUsersForExport(uniqueUsers);
-                }
-
                 setAudits(auditsData);
             } catch (err) {
                 console.error("Erro ao buscar auditorias:", err);
@@ -1006,6 +1046,7 @@
                 color: 'green',
                 onConfirm: async () => {
                     const auditRef = doc(db, "audits", auditId);
+                    // Bug Fix: Only update status and completedAt, never createdAt
                     await updateDoc(auditRef, { 
                         status: newStatus,
                         completedAt: serverTimestamp()
@@ -1051,95 +1092,123 @@
         };
         
         const handleExportClick = () => {
-            if (userData.role === 'admin') {
-                setShowExportModal(true);
-            } else {
-                exportToCSV(null, [userData.uid]);
-            }
+            setShowExportModal(true);
         };
 
-        const handleUserSelectionChange = (userId) => {
-            setSelectedUserIds(prev => 
-                prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+        const handleAuditSelectionChange = (auditId) => {
+            setSelectedAuditIds(prev => 
+                prev.includes(auditId) ? prev.filter(id => id !== auditId) : [...prev, auditId]
             );
         };
 
         const handleFinalExport = () => {
-            exportToCSV(null, selectedUserIds);
+             if (selectedAuditIds.length === 0) {
+                notify("Nenhuma auditoria selecionada para exportar.", "warning");
+                return;
+            }
+            exportToCSV(selectedAuditIds);
             setShowExportModal(false);
-            setSelectedUserIds([]);
+            setSelectedAuditIds([]);
         };
 
-        const exportToCSV = async (auditId = null, userIds = null) => {
+        const exportToCSV = async (auditIdsToExport) => {
+            setLoading(true);
             let entriesToExport = [];
-            let fileName = 'relatorio_completo_polaraud.csv';
+            let fileName = 'relatorio_polaraud.csv';
             
-            let auditsToProcess;
-            if (auditId) {
-                auditsToProcess = audits.filter(a => a.id === auditId);
-                fileName = `auditoria_${auditId}.csv`;
-            } else if (userIds && userIds.length > 0) {
-                const q = query(collection(db, "audits"), where("userId", "in", userIds));
-                const querySnapshot = await getDocs(q);
-                auditsToProcess = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                fileName = `auditorias_selecionadas.csv`;
-            } else {
-                auditsToProcess = audits;
-            }
-
-            if (auditsToProcess.length === 0) {
+            if (!auditIdsToExport || auditIdsToExport.length === 0) {
                 notify("Nenhuma auditoria para exportar.", "warning");
+                setLoading(false);
                 return;
             }
 
-            for (const audit of auditsToProcess) {
-                const entriesSnapshot = await getDocs(collection(db, "audits", audit.id, "entries"));
-                entriesSnapshot.forEach(entryDoc => {
-                    entriesToExport.push({ ...entryDoc.data(), userFullName: audit.userFullName });
+            if (auditIdsToExport.length === 1) {
+                fileName = `auditoria_${auditIdsToExport[0]}.csv`;
+            } else {
+                fileName = `auditorias_selecionadas.csv`;
+            }
+
+            try {
+                const auditsToProcessQuery = query(collection(db, "audits"), where("__name__", "in", auditIdsToExport));
+                const auditsSnapshot = await getDocs(auditsToProcessQuery);
+                const auditsToProcess = auditsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                for (const audit of auditsToProcess) {
+                    const entriesSnapshot = await getDocs(collection(db, "audits", audit.id, "entries"));
+                    entriesSnapshot.forEach(entryDoc => {
+                        entriesToExport.push({ 
+                            ...entryDoc.data(), 
+                            userFullName: audit.userFullName,
+                            auditTitle: audit.title
+                        });
+                    });
+                }
+
+                if (entriesToExport.length === 0) {
+                    notify("Nenhum apontamento encontrado para exportar.", "warning");
+                    setLoading(false);
+                    return;
+                }
+
+                const headers = "Titulo_Auditoria,Numero_Apontamento,Auditor,Data_Hora_Apontamento,Zona_Operacional,Setor_Tecnico,Setor_Responsavel,Orgao_Anuente_Auditado,Local,Descricao_Apontamento,Complemento,Evidencia_1,Evidencia_2,Evidencia_3";
+                const csvRows = [headers];
+
+                entriesToExport.sort((a, b) => a.entryNumber - b.entryNumber).forEach(entry => {
+                    const evidenceUrls = Object.values(entry.evidenceUrls || {});
+                    const row = [
+                        `"${entry.auditTitle || ''}"`,
+                        entry.entryNumber,
+                        `"${entry.userFullName || ''}"`,
+                        `"${entry.entryTimestamp ? new Date(entry.entryTimestamp.seconds * 1000).toLocaleString('pt-BR') : 'N/A'}"`,
+                        `"${entry.operationalZone || ''}"`,
+                        `"${entry.technicalSector || ''}"`,
+                        `"${entry.responsibleSector || ''}"`,
+                        `"${entry.auditedEntity || ''}"`,
+                        `"${entry.location || ''}"`,
+                        `"${(entry.description || '').replace(/"/g, '""')}"`,
+                        `"${(entry.complement || '').replace(/"/g, '""')}"`,
+                        // New image URL format
+                        evidenceUrls[0] ? `https://drive.google.com/uc?id=${evidenceUrls[0]}` : '',
+                        evidenceUrls[1] ? `https://drive.google.com/uc?id=${evidenceUrls[1]}` : '',
+                        evidenceUrls[2] ? `https://drive.google.com/uc?id=${evidenceUrls[2]}` : '',
+                    ];
+                    csvRows.push(row.join(','));
                 });
+
+                const csvString = csvRows.join('\n');
+                const blob = new Blob([`\uFEFF${csvString}`], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement("a");
+                const url = URL.createObjectURL(blob);
+                link.setAttribute("href", url);
+                link.setAttribute("download", fileName);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch(err) {
+                 console.error("Erro ao exportar CSV:", err);
+                 notify("Falha ao exportar CSV.", "error");
+            } finally {
+                setLoading(false);
             }
-
-            if (entriesToExport.length === 0) {
-                notify("Nenhum apontamento encontrado para exportar.", "warning");
-                return;
-            }
-
-            const headers = "Numero_Apontamento,Auditor,Data_Hora_Apontamento,Zona_Operacional,Setor_Tecnico,Orgao_Anuente_Auditado,Local,Descricao_Apontamento,Complemento,Evidencia_1,Evidencia_2,Evidencia_3";
-            const csvRows = [headers];
-
-            entriesToExport.sort((a, b) => a.entryNumber - b.entryNumber).forEach(entry => {
-                const row = [
-                    entry.entryNumber,
-                    `"${entry.userFullName || ''}"`,
-                    `"${entry.entryTimestamp ? new Date(entry.entryTimestamp.seconds * 1000).toLocaleString('pt-BR') : 'N/A'}"`,
-                    `"${entry.operationalZone || ''}"`,
-                    `"${entry.technicalSector || ''}"`,
-                    `"${entry.auditedEntity || ''}"`,
-                    `"${entry.location || ''}"`,
-                    `"${(entry.description || '').replace(/"/g, '""')}"`,
-                    `"${(entry.complement || '').replace(/"/g, '""')}"`,
-                    entry.evidenceUrls?.evidence_1 ? `https://drive.google.com/file/d/${entry.evidenceUrls.evidence_1}/view` : '',
-                    entry.evidenceUrls?.evidence_2 ? `https://drive.google.com/file/d/${entry.evidenceUrls.evidence_2}/view` : '',
-                    entry.evidenceUrls?.evidence_3 ? `https://drive.google.com/file/d/${entry.evidenceUrls.evidence_3}/view` : '',
-                ];
-                csvRows.push(row.join(','));
-            });
-
-            const csvString = csvRows.join('\n');
-            const blob = new Blob([`\uFEFF${csvString}`], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement("a");
-            const url = URL.createObjectURL(blob);
-            link.setAttribute("href", url);
-            link.setAttribute("download", fileName);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
         };
 
-        const filteredAudits = audits.filter(audit => 
-            (audit.userFullName && audit.userFullName.toLowerCase().includes(filter.toLowerCase())) ||
-            (audit.id && audit.id.toLowerCase().includes(filter.toLowerCase()))
-        );
+        const filteredAudits = audits.filter(audit => {
+            const auditDate = audit.createdAt?.seconds ? new Date(audit.createdAt.seconds * 1000) : null;
+            const start = startDate ? new Date(startDate) : null;
+            const end = endDate ? new Date(endDate) : null;
+            
+            if(start) start.setHours(0,0,0,0);
+            if(end) end.setHours(23,59,59,999);
+
+            const dateMatch = (!start || (auditDate && auditDate >= start)) && (!end || (auditDate && auditDate <= end));
+            
+            const filterText = filter.toLowerCase();
+            const textMatch = (audit.title && audit.title.toLowerCase().includes(filterText)) ||
+                              (audit.userFullName && audit.userFullName.toLowerCase().includes(filterText)) ||
+                              (audit.id && audit.id.toLowerCase().includes(filterText));
+
+            return dateMatch && textMatch;
+        });
 
         return (
             <div className="p-4 md:p-8 max-w-7xl mx-auto">
@@ -1149,37 +1218,18 @@
                     <div className="flex gap-4">
                         <button onClick={() => setView('home')} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-lg shadow-sm hover:bg-gray-50">Voltar</button>
                         <button onClick={handleExportClick} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg shadow-sm hover:bg-green-700">
-                            <i className="fas fa-file-csv mr-2"></i> Exportar TUDO
+                            <i className="fas fa-file-csv mr-2"></i> Exportação Personalizada
                         </button>
                     </div>
                 </header>
                 
                 {showExportModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-                        <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-                            <h3 className="text-lg font-bold mb-4">Exportar Auditorias</h3>
-                            <p className="mb-4">Selecione os usuários para exportar:</p>
-                            <div className="space-y-2 max-h-60 overflow-y-auto mb-4">
-                                {usersForExport.map(user => (
-                                    <div key={user.id} className="flex items-center">
-                                        <input 
-                                            type="checkbox" 
-                                            id={`user-${user.id}`} 
-                                            checked={selectedUserIds.includes(user.id)}
-                                            onChange={() => handleUserSelectionChange(user.id)}
-                                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                        />
-                                        <label htmlFor={`user-${user.id}`} className="ml-3 block text-sm font-medium text-gray-700">{user.name}</label>
-                                    </div>
-                                ))}
-                            </div>
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+                        <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
+                            <h3 className="text-lg font-bold mb-4">Exportação Personalizada</h3>
+                            <p className="mb-4 text-sm text-gray-600">Selecione as auditorias que deseja incluir no relatório. Use os filtros para refinar a busca.</p>
                             <div className="flex justify-end gap-4 mt-6">
-                                <button onClick={() => {
-                                    const allUserIds = usersForExport.map(u => u.id);
-                                    exportToCSV(null, allUserIds);
-                                    setShowExportModal(false);
-                                }} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">Exportar Todos Juntos</button>
-                                <button onClick={handleFinalExport} disabled={selectedUserIds.length === 0} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400">Exportar Selecionados</button>
+                                <button onClick={handleFinalExport} disabled={selectedAuditIds.length === 0} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400">Exportar {selectedAuditIds.length} Selecionada(s)</button>
                                 <button onClick={() => setShowExportModal(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">Cancelar</button>
                             </div>
                         </div>
@@ -1187,11 +1237,20 @@
                 )}
 
 
-                {userData.role === 'admin' && (
-                    <div className="mb-6">
-                        <input type="text" placeholder="Filtrar por auditor ou ID..." value={filter} onChange={e => setFilter(e.target.value)} className="w-full max-w-md p-2 border rounded-lg" />
+                <div className="mb-6 bg-white p-4 rounded-lg shadow">
+                    <h3 className="font-semibold mb-2">Filtros</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <input type="text" placeholder="Filtrar por título, auditor ou ID..." value={filter} onChange={e => setFilter(e.target.value)} className="w-full p-2 border rounded-lg" />
+                        <div>
+                            <label className="text-xs text-gray-500">Data de Início</label>
+                            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full p-2 border rounded-lg" />
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-500">Data de Fim</label>
+                            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full p-2 border rounded-lg" />
+                        </div>
                     </div>
-                )}
+                </div>
 
                 {loadingData ? <div className="text-center p-10">Carregando histórico...</div> : error ? <div className="text-center p-10 text-red-500">{error}</div> : (
                     <div className="space-y-4">
@@ -1199,22 +1258,21 @@
                         <div className="md:hidden space-y-4">
                             {filteredAudits.length > 0 ? filteredAudits.map(audit => (
                                 <div key={audit.id} className="bg-white p-4 rounded-lg shadow space-y-3">
-                                    <div>
-                                        <div className="text-xs text-gray-500">ID</div>
-                                        <div className="font-mono text-sm text-gray-800 break-all">{audit.id}</div>
-                                        {audit.firstEntrySummary && (
-                                            <div className="text-xs text-gray-600 mt-1">
-                                                {audit.firstEntrySummary.auditedEntity} / {audit.firstEntrySummary.operationalZone}
-                                            </div>
-                                        )}
-                                        <div className="text-xs text-gray-600 mt-1">Apontamentos: {audit.entryCount || 0}</div>
-                                    </div>
-                                    {userData.role === 'admin' && (
-                                         <div>
-                                            <div className="text-xs text-gray-500">Auditor</div>
-                                            <div className="text-sm text-gray-900">{audit.userFullName}</div>
+                                    <div className="flex items-center gap-3">
+                                        <input 
+                                            type="checkbox" 
+                                            className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            checked={selectedAuditIds.includes(audit.id)}
+                                            onChange={() => handleAuditSelectionChange(audit.id)}
+                                        />
+                                        <div>
+                                            <div className="font-bold text-gray-800">{audit.title}</div>
+                                            <div className="font-mono text-xs text-gray-500 break-all">{audit.id}</div>
+                                            {userData.role === 'admin' && <div className="text-sm text-gray-700">{audit.userFullName}</div>}
                                         </div>
-                                    )}
+                                    </div>
+                                    <div className="text-xs text-gray-600 mt-1">Apontamentos: {audit.entryCount || 0}</div>
+                                    
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <div className="text-xs text-gray-500">Hora de Início</div>
@@ -1245,10 +1303,10 @@
                                         {(userData.role === 'admin' || (audit.userId === userData.uid && audit.status === 'pending')) && (
                                             <button onClick={() => handleDeleteAudit(audit.id)} className="px-3 py-1 text-xs font-medium rounded-md text-red-800 bg-red-100 hover:bg-red-200">Apagar</button>
                                         )}
-                                        <button onClick={() => exportToCSV(audit.id)} className="px-3 py-1 text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200">CSV</button>
+                                        <button onClick={() => exportToCSV([audit.id])} className="px-3 py-1 text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200">CSV</button>
                                     </div>
                                 </div>
-                            )) : <div className="text-center py-10 text-gray-500">Nenhuma auditoria encontrada.</div>}
+                            )) : <div className="text-center py-10 text-gray-500">Nenhuma auditoria encontrada com os filtros atuais.</div>}
                         </div>
                         
                         {/* Desktop View */}
@@ -1256,8 +1314,9 @@
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID / Auditor</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resumo</th>
+                                        <th className="px-6 py-3"></th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Título / ID / Auditor</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Apontamentos</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora de Início</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora de Conclusão</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -1267,17 +1326,21 @@
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {filteredAudits.length > 0 ? filteredAudits.map(audit => (
                                         <tr key={audit.id}>
+                                            <td className="px-6 py-4">
+                                                <input 
+                                                    type="checkbox" 
+                                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                    checked={selectedAuditIds.includes(audit.id)}
+                                                    onChange={() => handleAuditSelectionChange(audit.id)}
+                                                />
+                                            </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                <div className="font-mono text-gray-600">{audit.id}</div>
+                                                <div className="font-bold text-gray-900">{audit.title}</div>
+                                                <div className="font-mono text-gray-600 text-xs">{audit.id}</div>
                                                 {userData.role === 'admin' && <div className="text-xs text-gray-500 mt-1">{audit.userFullName}</div>}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {audit.firstEntrySummary && (
-                                                    <div className="text-xs">
-                                                        {audit.firstEntrySummary.auditedEntity} / {audit.firstEntrySummary.operationalZone}
-                                                    </div>
-                                                )}
-                                                <div className="text-xs text-gray-600 mt-1">Apontamentos: {audit.entryCount || 0}</div>
+                                                <div className="text-sm text-gray-900">{audit.entryCount || 0}</div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatTimestamp(audit.createdAt) || 'N/A'}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{audit.completedAt ? formatTimestamp(audit.completedAt) : 'Em andamento'}</td>
@@ -1301,12 +1364,12 @@
                                                      {(userData.role === 'admin' || (audit.userId === userData.uid && audit.status === 'pending')) && (
                                                         <button onClick={() => handleDeleteAudit(audit.id)} className="px-3 py-1 text-xs font-medium rounded-md text-red-800 bg-red-100 hover:bg-red-200">Apagar</button>
                                                     )}
-                                                    <button onClick={() => exportToCSV(audit.id)} className="px-3 py-1 text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200">CSV</button>
+                                                    <button onClick={() => exportToCSV([audit.id])} className="px-3 py-1 text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200" title="Exportar esta auditoria para CSV">CSV</button>
                                                 </div>
                                             </td>
                                         </tr>
                                     )) : (
-                                        <tr><td colSpan="6" className="text-center py-10 text-gray-500">Nenhuma auditoria encontrada.</td></tr>
+                                        <tr><td colSpan="7" className="text-center py-10 text-gray-500">Nenhuma auditoria encontrada com os filtros atuais.</td></tr>
                                     )}
                                 </tbody>
                             </table>
@@ -1406,7 +1469,11 @@
 
                 const entriesSnapshot = await getDocs(collection(db, "audits", auditIdToExport, "entries"));
                 entriesSnapshot.forEach(entryDoc => {
-                    entriesToExport.push({ ...entryDoc.data(), userFullName: auditData.userFullName });
+                    entriesToExport.push({ 
+                        ...entryDoc.data(), 
+                        userFullName: auditData.userFullName,
+                        auditTitle: auditData.title
+                    });
                 });
 
                 if (entriesToExport.length === 0) {
@@ -1415,23 +1482,27 @@
                     return;
                 }
 
-                const headers = "Numero_Apontamento,Auditor,Data_Hora_Apontamento,Zona_Operacional,Setor_Tecnico,Orgao_Anuente_Auditado,Local,Descricao_Apontamento,Complemento,Evidencia_1,Evidencia_2,Evidencia_3";
+                const headers = "Titulo_Auditoria,Numero_Apontamento,Auditor,Data_Hora_Apontamento,Zona_Operacional,Setor_Tecnico,Setor_Responsavel,Orgao_Anuente_Auditado,Local,Descricao_Apontamento,Complemento,Evidencia_1,Evidencia_2,Evidencia_3";
                 const csvRows = [headers];
 
                 entriesToExport.sort((a, b) => a.entryNumber - b.entryNumber).forEach(entry => {
+                    const evidenceUrls = Object.values(entry.evidenceUrls || {});
                     const row = [
+                        `"${entry.auditTitle || ''}"`,
                         entry.entryNumber,
                         `"${entry.userFullName || ''}"`,
                         `"${entry.entryTimestamp ? new Date(entry.entryTimestamp.seconds * 1000).toLocaleString('pt-BR') : 'N/A'}"`,
                         `"${entry.operationalZone || ''}"`,
                         `"${entry.technicalSector || ''}"`,
+                        `"${entry.responsibleSector || ''}"`,
                         `"${entry.auditedEntity || ''}"`,
                         `"${entry.location || ''}"`,
                         `"${(entry.description || '').replace(/"/g, '""')}"`,
                         `"${(entry.complement || '').replace(/"/g, '""')}"`,
-                        entry.evidenceUrls?.evidence_1 ? `https://drive.google.com/file/d/${entry.evidenceUrls.evidence_1}/view` : '',
-                        entry.evidenceUrls?.evidence_2 ? `https://drive.google.com/file/d/${entry.evidenceUrls.evidence_2}/view` : '',
-                        entry.evidenceUrls?.evidence_3 ? `https://drive.google.com/file/d/${entry.evidenceUrls.evidence_3}/view` : '',
+                        // New image URL format
+                        evidenceUrls[0] ? `https://drive.google.com/uc?id=${evidenceUrls[0]}` : '',
+                        evidenceUrls[1] ? `https://drive.google.com/uc?id=${evidenceUrls[1]}` : '',
+                        evidenceUrls[2] ? `https://drive.google.com/uc?id=${evidenceUrls[2]}` : '',
                     ];
                     csvRows.push(row.join(','));
                 });
@@ -1461,9 +1532,9 @@
         return (
             <div className="p-4 md:p-8 max-w-4xl mx-auto">
                 <ConfirmationModal action={confirmAction} onCancel={() => setConfirmAction(null)} />
-                <header className="flex justify-between items-center mb-6">
+                <header className="flex justify-between items-start mb-6">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-800">Visualizar Auditoria</h1>
+                        <h1 className="text-2xl font-bold text-gray-800">{audit?.title || 'Visualizar Auditoria'}</h1>
                         <p className="text-sm text-gray-500 font-mono">{auditId}</p>
                     </div>
                     <button onClick={() => setView('history')} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-lg shadow-sm hover:bg-gray-50">Voltar ao Histórico</button>
@@ -1474,9 +1545,10 @@
                             <h3 className="text-lg font-semibold text-gray-700 mb-4">Apontamento #{entry.entryNumber}</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                 <div className="bg-gray-50 p-3 rounded-lg"><strong>Órgão:</strong> {entry.auditedEntity}</div>
+                                <div className="bg-gray-50 p-3 rounded-lg"><strong>Setor Responsável:</strong> {entry.responsibleSector}</div>
                                 <div className="bg-gray-50 p-3 rounded-lg"><strong>Setor Técnico:</strong> {entry.technicalSector}</div>
                                 <div className="bg-gray-50 p-3 rounded-lg"><strong>Zona:</strong> {entry.operationalZone}</div>
-                                <div className="bg-gray-50 p-3 rounded-lg"><strong>Local:</strong> {entry.location}</div>
+                                <div className="bg-gray-50 p-3 rounded-lg md:col-span-2"><strong>Local:</strong> {entry.location}</div>
                                 <div className="bg-gray-50 p-3 rounded-lg md:col-span-2">
                                     <strong className="block mb-1">Apontamento:</strong>
                                     <p className="uppercase font-mono whitespace-pre-wrap">{entry.description}</p>
@@ -1491,7 +1563,7 @@
                                     <strong className="block mb-2">Evidências:</strong>
                                     <div className="flex flex-wrap gap-4">
                                         {entry.evidenceUrls && Object.keys(entry.evidenceUrls).length > 0 ? Object.values(entry.evidenceUrls).map((fileId, evIndex) => (
-                                            <button key={evIndex} onClick={() => setSelectedImage(`https://drive.google.com/thumbnail?id=${fileId}&sz=s1024`)}>
+                                            <button key={evIndex} onClick={() => setSelectedImage(`https://drive.google.com/uc?id=${fileId}`)}>
                                                 <img src={`https://drive.google.com/thumbnail?id=${fileId}&sz=s220`} alt={`Evidência ${evIndex + 1}`} className="w-32 h-32 object-cover rounded-lg shadow-md hover:scale-105 transition-transform cursor-pointer" />
                                             </button>
                                         )) : <p className="text-gray-500">Nenhuma evidência fotográfica.</p>}
