@@ -618,6 +618,8 @@
                         const reconstructedEntries = fetchedEntries.map(entry => ({
                             ...entry,
                             id: entry.firestoreId,
+                            // Bug Fix: Restore clientTimestamp from Firestore Timestamp
+                            clientTimestamp: entry.entryTimestamp?.toDate(),
                             evidences: entry.evidenceUrls ? Object.entries(entry.evidenceUrls).map(([key, fileId]) => ({
                                 type: 'remote',
                                 key,
@@ -638,6 +640,8 @@
                          if (draft.entries && draft.entries.length > 0) {
                             const restoredEntries = draft.entries.map(entry => ({
                                 ...entry,
+                                // Restore Date object from string if needed
+                                clientTimestamp: entry.clientTimestamp ? new Date(entry.clientTimestamp) : new Date(),
                                 evidences: entry.evidences.map(ev => ({
                                     ...ev, 
                                     type: 'local',
@@ -663,6 +667,8 @@
                     title: auditTitle,
                     entries: entries.map(entry => ({
                         ...entry,
+                        // Convert Date to string for IndexedDB
+                        clientTimestamp: entry.clientTimestamp.toISOString(),
                         evidences: entry.evidences.filter(ev => ev.type === 'local').map(ev => ({
                             base64: ev.base64, 
                             file: {name: ev.file.name, type: ev.file.type}
@@ -680,7 +686,8 @@
                 description: '',
                 complement: '',
                 responsibleSector: RESPONSIBLE_SECTORS[0],
-                evidences: []
+                evidences: [],
+                clientTimestamp: new Date() // Captura o horário no momento da criação
             };
 
             if (entries.length > 0) {
@@ -870,12 +877,12 @@
 
                 entriesWithUrls.forEach((entry, index) => {
                     const entryRef = doc(collection(db, "audits", currentAuditId, "entries"));
-                    const { evidences, id, ...entryToSave } = entry;
+                    const { evidences, id, clientTimestamp, ...entryToSave } = entry;
                     batch.set(entryRef, {
                         ...entryToSave,
                         userId: userData.uid, // Required for Firestore rules
                         technicalSector: userData.sector,
-                        entryTimestamp: serverTimestamp()
+                        entryTimestamp: clientTimestamp // Usa o horário capturado no cliente
                     });
                 });
                 
