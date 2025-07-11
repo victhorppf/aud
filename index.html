@@ -131,6 +131,70 @@
         "ZONA 4": ["AZ-15", "AZ-16", "AZ-20", "AZ-21", "AZ-22", "AZ-24 (Box)", "AZ-26", "AZ-27"],
       };
 
+      const PREDEFINED_DESCRIPTIONS = {
+        "CONPORTOS": [
+            "OUTROS",
+            "LIMPEZA DA TELA – TODO PERÍMETRO",
+            "LIMPEZA DA CONCERTINA – TODO PERÍMETRO",
+            "LIMPEZA DA TELA E CONCERTINA – TODO PERÍMETRO",
+            "MANUTENÇÃO DA TELA",
+            "AUSÊNCIA DE CONCERTINA",
+            "MANUTENÇÃO NO PORTÃO",
+            "REMOÇÃO DOS MATERIAIS PRÓXIMOS À CONCERTINA",
+            "MANUTENÇÃO NA CONCERTINA",
+            "PODAR VEGETAÇÃO NA CONCERTINA E TELA – TODO PERÍMETRO",
+            "AUSÊNCIA DE GRADE DE PROTEÇÃO",
+            "MANUTENÇÃO NO CABEAMENTO – PRECISA ESTAR ENVELOPADO OU ENTERRADO",
+            "FALTA DE LACRE NO QUADRO DE ENERGIA DA TI",
+            "MANUTENÇÃO NA TRANCA DO QUADRO DE ENERGIA DA TI",
+        ],
+        "MINISTÉRIOS DO TRABALHO": [
+            "OUTROS",
+            "AUSÊNCIA DE ANTIDERRAPANTE",
+            "AUSÊNCIA DE CAPA DE PROTEÇÃO NA LUMINÁRIA",
+            "AUSÊNCIA DE PLACA DE “PARE”",
+            "AUSÊNCIA DE GRADE DE PROTEÇÃO",
+            "AUSÊNCIA DE ISOLAMENTO",
+            "AUSÊNCIA DE PAVIMENTAÇÃO",
+            "AUSÊNCIA DE TAMPA",
+            "AUSÊNCIA DE TELHA",
+            "AUSÊNCIA DE SALA DE BLOCO",
+            "AUSÊNCIA DE GUARDA RAIL",
+            "INFILTRAÇÃO",
+            "AUSÊNCIA DE LIMPEZA",
+            "AUSÊNCIA DE LUZ DE EMERGÊNCIA",
+            "MANUTENÇÃO NOS BANCOS",
+            "MANUTENÇÃO NA LUMINÁRIA",
+            "AUSÊNCIA DE MANUTENÇÃO",
+            "MELHORIA NA FIAÇÃO",
+            "AUSÊNCIA DE PINTURA NAS FAIXAS DE PEDESTRE",
+            "AUSÊNCIA DE PLACA “PROIBIDO FUMAR”",
+            "AUSÊNCIA DE ROTA DE FUGA",
+            "AUSÊNCIA DE PLACA DE EMERGÊNCIA",
+            "RACHADURA NA PAREDE",
+            "RASGO NA LONA",
+            "REALOCAÇÃO DE EXTINTORES",
+            "REMOÇÃO DE COLMEIA",
+            "REMOÇÃO DE ESTRUTURA",
+            "REMOÇÃO DE RESÍDUOS",
+        ],
+        "APPA": [
+            "OUTROS",
+            "AUSÊNCIA DE GRADE DE PROTEÇÃO",
+            "AUSÊNCIA DE ISOLAMENTO",
+            "AUSÊNCIA DE TAMPA",
+            "LIMPEZA DA VIA",
+            "MANUTENÇÃO NA GRADE",
+            "MANUTENÇÃO NA IDENTIFICAÇÃO DOS RESÍDUOS",
+            "MANUTENÇÃO NO BUEIRO",
+            "RASGO NA LONA",
+            "RESÍDUOS ESPALHADOS",
+            "RESÍDUOS NA CANALETA",
+        ],
+        "RFB": ["OUTROS"],
+        "MAPA": ["OUTROS"],
+      };
+
       function Notification({ message, type, onClose }) {
         const [exiting, setExiting] = React.useState(false);
 
@@ -615,18 +679,24 @@
                         const fetchedEntries = entriesSnapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
                         fetchedEntries.sort((a, b) => a.entryNumber - b.entryNumber);
 
-                        const reconstructedEntries = fetchedEntries.map(entry => ({
-                            ...entry,
-                            id: entry.firestoreId,
-                            // Bug Fix: Restore clientTimestamp from Firestore Timestamp
-                            clientTimestamp: entry.entryTimestamp?.toDate(),
-                            evidences: entry.evidenceUrls ? Object.entries(entry.evidenceUrls).map(([key, fileId]) => ({
-                                type: 'remote',
-                                key,
-                                fileId: fileId,
-                                preview: `https://drive.google.com/thumbnail?id=${fileId}&sz=s220`
-                            })) : []
-                        }));
+                        const reconstructedEntries = fetchedEntries.map(entry => {
+                            const predefinedOptions = PREDEFINED_DESCRIPTIONS[entry.auditedEntity] || ["OUTROS"];
+                            const isPredefined = predefinedOptions.includes(entry.description);
+                            
+                            return {
+                                ...entry,
+                                id: entry.firestoreId,
+                                clientTimestamp: entry.entryTimestamp?.toDate(),
+                                descriptionSelection: isPredefined ? entry.description : "OUTROS",
+                                manualDescription: isPredefined ? "" : entry.description,
+                                evidences: entry.evidenceUrls ? Object.entries(entry.evidenceUrls).map(([key, fileId]) => ({
+                                    type: 'remote',
+                                    key,
+                                    fileId: fileId,
+                                    preview: `https://drive.google.com/thumbnail?id=${fileId}&sz=s220`
+                                })) : []
+                            }
+                        });
                         setEntries(reconstructedEntries);
                     } catch (error) {
                         notify("Erro ao carregar auditoria: " + error.message, 'error');
@@ -640,7 +710,6 @@
                          if (draft.entries && draft.entries.length > 0) {
                             const restoredEntries = draft.entries.map(entry => ({
                                 ...entry,
-                                // Restore Date object from string if needed
                                 clientTimestamp: entry.clientTimestamp ? new Date(entry.clientTimestamp) : new Date(),
                                 evidences: entry.evidences.map(ev => ({
                                     ...ev, 
@@ -667,7 +736,6 @@
                     title: auditTitle,
                     entries: entries.map(entry => ({
                         ...entry,
-                        // Convert Date to string for IndexedDB
                         clientTimestamp: entry.clientTimestamp.toISOString(),
                         evidences: entry.evidences.filter(ev => ev.type === 'local').map(ev => ({
                             base64: ev.base64, 
@@ -684,10 +752,12 @@
                 id: Date.now(),
                 entryNumber: entries.length + 1,
                 description: '',
+                descriptionSelection: PREDEFINED_DESCRIPTIONS[AUDITED_ENTITIES[0]][0] || 'OUTROS',
+                manualDescription: '',
                 complement: '',
                 responsibleSector: RESPONSIBLE_SECTORS[0],
                 evidences: [],
-                clientTimestamp: new Date() // Captura o horário no momento da criação
+                clientTimestamp: new Date()
             };
 
             if (entries.length > 0) {
@@ -695,7 +765,8 @@
                 newEntryData.auditedEntity = lastEntry.auditedEntity;
                 newEntryData.operationalZone = lastEntry.operationalZone;
                 newEntryData.location = lastEntry.location;
-                newEntryData.responsibleSector = lastEntry.responsibleSector; // FIX: Pre-fill responsible sector
+                newEntryData.responsibleSector = lastEntry.responsibleSector;
+                newEntryData.descriptionSelection = PREDEFINED_DESCRIPTIONS[lastEntry.auditedEntity][0] || 'OUTROS';
             } else {
                 newEntryData.auditedEntity = AUDITED_ENTITIES[0];
                 newEntryData.operationalZone = Object.keys(ZONES)[0];
@@ -722,16 +793,29 @@
 
         const updateEntry = (index, field, value) => {
             const newEntries = [...entries];
-            newEntries[index][field] = value;
-            if (field === 'operationalZone') {
-                newEntries[index]['location'] = ZONES[value][0];
+            const entry = newEntries[index];
+            entry[field] = value;
+
+            if (field === 'auditedEntity') {
+                entry.location = ZONES[entry.operationalZone][0];
+                const newOptions = PREDEFINED_DESCRIPTIONS[value] || ["OUTROS"];
+                entry.descriptionSelection = newOptions[0];
+                entry.manualDescription = '';
             }
+            
+            if (field === 'operationalZone') {
+                entry.location = ZONES[value][0];
+            }
+
+            if (field === 'descriptionSelection' && value !== 'OUTROS') {
+                entry.manualDescription = '';
+            }
+
             setEntries(newEntries);
         };
 
         const handleTitleChange = (e) => {
             const value = e.target.value;
-            // Regex to capitalize the first letter of each word
             const formattedTitle = value.replace(/\b\w/g, char => char.toUpperCase());
             setAuditTitle(formattedTitle);
         };
@@ -798,22 +882,23 @@
                  notify("Por favor, insira um título para a auditoria.", "warning");
                  return;
             }
-            if (entries.length === 0 || entries.some(e => !e.description || !e.responsibleSector)) {
-                notify("A auditoria precisa ter pelo menos um apontamento com descrição e setor responsável.", "warning");
-                return;
+            
+            for (const entry of entries) {
+                const finalDescription = entry.descriptionSelection === 'OUTROS' ? entry.manualDescription : entry.descriptionSelection;
+                if (!finalDescription || !entry.responsibleSector) {
+                     notify("Cada apontamento deve ter uma descrição e um setor responsável.", "warning");
+                     return;
+                }
             }
+
             setIsSaving(true);
 
             try {
-                // 1. Processar todas as imagens primeiro
-                const allEvidencePromises = entries.map(async (entry, index) => {
+                const allEvidencePromises = entries.map(async (entry) => {
                     const localImagesToUpload = entry.evidences.filter(ev => ev.type === 'local');
                     const remoteImagesToKeep = entry.evidences.filter(ev => ev.type === 'remote');
-                    
                     const finalEvidenceUrls = {};
-                    remoteImagesToKeep.forEach(ev => {
-                        finalEvidenceUrls[ev.key] = ev.fileId;
-                    });
+                    remoteImagesToKeep.forEach(ev => { finalEvidenceUrls[ev.key] = ev.fileId; });
 
                     if (localImagesToUpload.length > 0) {
                         const imagePayload = localImagesToUpload.map((ev, localIndex) => {
@@ -835,28 +920,24 @@
                         const result = await response.json();
                         if (result.status !== 'success') throw new Error(`API de imagens falhou: ${result.message} ${result.stack || ''}`);
                         
-                        result.files.forEach(fileInfo => {
-                            finalEvidenceUrls[fileInfo.key] = fileInfo.id;
-                        });
+                        result.files.forEach(fileInfo => { finalEvidenceUrls[fileInfo.key] = fileInfo.id; });
                     }
                     return { ...entry, evidenceUrls: finalEvidenceUrls };
                 });
 
                 const entriesWithUrls = await Promise.all(allEvidencePromises);
 
-                // 2. Agora, fazer a transação no Firestore
                 const batch = writeBatch(db);
                 let currentAuditId = auditId;
 
-                const firstEntry = entries[0];
                 const auditData = {
                     userId: userData.uid,
                     userFullName: userData.fullName,
                     title: auditTitle,
                     status: "pending",
                     firstEntrySummary: {
-                        auditedEntity: firstEntry.auditedEntity,
-                        operationalZone: firstEntry.operationalZone
+                        auditedEntity: entries[0].auditedEntity,
+                        operationalZone: entries[0].operationalZone
                     },
                     entryCount: entries.length
                 };
@@ -864,26 +945,27 @@
                 if (!currentAuditId) {
                     const auditRef = doc(collection(db, "audits"));
                     currentAuditId = auditRef.id;
-                    // Bug Fix: Only set createdAt on initial creation
                     auditData.createdAt = serverTimestamp();
                     batch.set(auditRef, auditData);
                 } else {
                     const auditRef = doc(db, "audits", currentAuditId);
-                    // On update, we don't include createdAt, so it's not overwritten
                     batch.update(auditRef, auditData);
-
                     const oldEntriesSnapshot = await getDocs(collection(db, "audits", currentAuditId, "entries"));
                     oldEntriesSnapshot.forEach(doc => batch.delete(doc.ref));
                 }
 
-                entriesWithUrls.forEach((entry, index) => {
+                entriesWithUrls.forEach((entry) => {
                     const entryRef = doc(collection(db, "audits", currentAuditId, "entries"));
-                    const { evidences, id, clientTimestamp, ...entryToSave } = entry;
+                    const { evidences, id, clientTimestamp, descriptionSelection, manualDescription, ...entryToSave } = entry;
+                    
+                    const finalDescription = descriptionSelection === 'OUTROS' ? manualDescription : descriptionSelection;
+
                     batch.set(entryRef, {
                         ...entryToSave,
-                        userId: userData.uid, // Required for Firestore rules
+                        description: finalDescription,
+                        userId: userData.uid,
                         technicalSector: userData.sector,
-                        entryTimestamp: clientTimestamp // Usa o horário capturado no cliente
+                        entryTimestamp: clientTimestamp
                     });
                 });
                 
@@ -939,31 +1021,53 @@
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor={`auditedEntity-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Órgão Anuente Auditado</label>
-                                    <select id={`auditedEntity-${index}`} value={entry.auditedEntity} onChange={e => updateEntry(index, 'auditedEntity', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Órgão Anuente Auditado</label>
+                                    <select value={entry.auditedEntity} onChange={e => updateEntry(index, 'auditedEntity', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
                                         {AUDITED_ENTITIES.map(e => <option key={e} value={e}>{e}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label htmlFor={`responsibleSector-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Setor Responsável</label>
-                                    <select id={`responsibleSector-${index}`} value={entry.responsibleSector} onChange={e => updateEntry(index, 'responsibleSector', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md" required>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Setor Responsável</label>
+                                    <select value={entry.responsibleSector} onChange={e => updateEntry(index, 'responsibleSector', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md" required>
                                         {RESPONSIBLE_SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label htmlFor={`operationalZone-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Zona Operacional</label>
-                                    <select id={`operationalZone-${index}`} value={entry.operationalZone} onChange={e => updateEntry(index, 'operationalZone', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Zona Operacional</label>
+                                    <select value={entry.operationalZone} onChange={e => updateEntry(index, 'operationalZone', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
                                         {Object.keys(ZONES).map(z => <option key={z} value={z}>{z}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label htmlFor={`location-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Local</label>
-                                    <select id={`location-${index}`} value={entry.location} onChange={e => updateEntry(index, 'location', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Local</label>
+                                    <select value={entry.location} onChange={e => updateEntry(index, 'location', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
                                         {ZONES[entry.operationalZone].map(l => <option key={l} value={l}>{l}</option>)}
                                     </select>
                                 </div>
+                                
+                                <div className="md:col-span-2 space-y-2">
+                                    <label className="block text-sm font-medium text-gray-700">Apontamento</label>
+                                    <select 
+                                        value={entry.descriptionSelection} 
+                                        onChange={e => updateEntry(index, 'descriptionSelection', e.target.value)} 
+                                        className="w-full p-2 bg-gray-50 border rounded-md"
+                                    >
+                                        {(PREDEFINED_DESCRIPTIONS[entry.auditedEntity] || ["OUTROS"]).map(desc => (
+                                            <option key={desc} value={desc}>{desc}</option>
+                                        ))}
+                                    </select>
 
-                                <textarea value={entry.description} onChange={e => updateEntry(index, 'description', e.target.value)} placeholder="APONTAMENTO (EM MAIÚSCULAS)" className="w-full p-2 bg-gray-50 border rounded-md md:col-span-2 h-24 uppercase" required></textarea>
+                                    {entry.descriptionSelection === 'OUTROS' && (
+                                        <textarea 
+                                            value={entry.manualDescription} 
+                                            onChange={e => updateEntry(index, 'manualDescription', e.target.value)} 
+                                            placeholder="Descreva o apontamento (EM MAIÚSCULAS)" 
+                                            className="w-full p-2 bg-gray-50 border rounded-md h-24 uppercase" 
+                                            required 
+                                        />
+                                    )}
+                                </div>
+
                                 <textarea value={entry.complement} onChange={e => updateEntry(index, 'complement', e.target.value)} placeholder="Complemento (opcional)" className="w-full p-2 bg-gray-50 border rounded-md md:col-span-2 h-20"></textarea>
                                 
                                 <div className="md:col-span-2">
