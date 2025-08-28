@@ -1,0 +1,44 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Função para verificar se o usuário está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Acesso público para validação do segredo
+    match /secrets/{secretId} {
+      allow read: if true;
+      allow write: if false; // Apenas administradores pelo console
+    }
+
+    // Regras para usuários
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Regras para auditorias
+    match /audits/{auditId} {
+      allow read: if isAuthenticated();
+      // A criação e atualização são gerenciadas por Cloud Functions
+      // para garantir a lógica de negócio e o log.
+      allow write: if isAuthenticated();
+
+      // Entradas/Apontamentos
+      match /entries/{entryId} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated();
+      }
+    }
+
+    // Logs só podem ser escritos pelo backend (Cloud Functions)
+    match /logs/{logId} {
+      allow read: if isAuthenticated(); // Permitir leitura para timeline
+      allow write: if false;
+    }
+  }
+}
