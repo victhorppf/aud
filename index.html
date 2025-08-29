@@ -118,31 +118,37 @@
           ZONAS_OPERACIONAIS_SEG_PATRIMONIAL_SIRENE: ["Pontos de Acionamento"],
           LOCAIS_POR_ZONA_SEG_PATRIMONIAL_SIRENE: { "Pontos de Acionamento": ["Botoeira Almoxarifado", "Botoeira CCCOM", "Acionamento Remoto"] },
           ZONAS_OPERACIONAIS_SEG_PATRIMONIAL_PERIMETRAL_SENSOR: ["ZONA 1", "ZONA 2", "ZONA 3", "ZONA 4"],
-          LOCAIS_POR_ZONA_SEG_PATRIMONIAL_PERIMETRAL_SENSOR: { "ZONA 1": ["Ponto A", "Ponto B"], "ZONA 2": ["Ponto A", "Ponto B"], "ZONA 3": ["Ponto A", "Ponto B"], "ZONA 4": ["Ponto A", "Ponto B"] },
+          LOCAIS_POR_ZONA_SEG_PATRIMONIAL_PERIMETRAL_SENSOR: { "ZONA 1": ["Ponto A", "Ponto B", "Ponto C", "Ponto D"], "ZONA 2": ["Ponto A", "Ponto B", "Ponto C", "Ponto D"], "ZONA 3": ["Ponto A", "Ponto B", "Ponto C", "Ponto D"], "ZONA 4": ["Ponto A", "Ponto B", "Ponto C", "Ponto D"] },
           ZONAS_OPERACIONAIS_SEG_PATRIMONIAL_CONTROLE_DE_ACESSO: ["TORNIQUETES", "DETECTORES DE METAL", "CANCELAS"],
-          LOCAIS_POR_ZONA_SEG_PATRIMONIAL_CONTROLE_DE_ACESSO: { "TORNIQUETES": ["Torniquete 01", "Torniquete 02"], "DETECTORES DE METAL": ["Detector 01"], "CANCELAS": ["Cancela Entrada"] },
+          LOCAIS_POR_ZONA_SEG_PATRIMONIAL_CONTROLE_DE_ACESSO: { "TORNIQUETES": ["Torniquete 01 (Entrada)", "Torniquete 01 (Saida)", "Torniquete 02 (Entrada)", "Torniquete 02 (Saida)", "Torniquete 03 (Entrada)", "Torniquete 03 (Saida)"], "DETECTORES DE METAL": ["Detector 01", "Detector 02", "Detector 03"], "CANCELAS": ["Cancela Entrada", "Cancela Saida"] },
           
-          // --- COLEÇÕES DE APONTAMENTOS ATUALIZADAS (SEM "OUTROS") ---
-          APONTAMENTOS_VAZIO: [],
-          APONTAMENTOS_PERIMETRAL_GERAL: ["Vegetação", "Estado da concertina", "Estado da cerca", "Cabeamento exposto"],
-          APONTAMENTOS_SENSOR: ["OK", "Não conforme"],
-          APONTAMENTOS_CFTV: ["Qualidade", "Posicionamento", "Visibilidade", "Tempo de gravação"],
-          APONTAMENTOS_CONTROLE_ACESSO: ["OK", "Não conforme"],
+          APONTAMENTOS_SIRENE: ["OUTROS", "OK", "NÃO CONFORME"],
+          APONTAMENTOS_PERIMETRAL_GERAL: ["OUTROS", "VEGETAÇÃO", "ESTADO DA CONCERTINA", "ESTADO DA CERCA", "CABEAMENTO EXPOSTO"],
+          APONTAMENTOS_SENSOR: ["OUTROS", "OK", "NÃO CONFORME"],
+          APONTAMENTOS_CFTV: ["OUTROS", "QUALIDADE", "POSICIONAMENTO", "VISIBILIDADE", "TEMPO DE GRAVAÇÃO"],
+          APONTAMENTOS_CONTROLE_ACESSO: ["OUTROS", "OK", "NÃO CONFORME"],
+          APONTAMENTOS_CONFORMIDADE_POR_ORGAO: {
+            "CONPORTOS": [ "OUTROS", "LIMPEZA DA TELA – TODO PERÍMETRO", "LIMPEZA DA CONCERTINA – TODO PERÍMETRO", "LIMPEZA DA TELA E CONCERTINA – TODO PERÍMETRO", "MANUTENÇÃO DA TELA", "AUSÊNCIA DE CONCERTINA", "MANUTENÇÃO NO PORTÃO", "REMOÇÃO DOS MATERIAIS PRÓXIMOS À CONCERTINA", "MANUTENÇÃO NA CONCERTINA", "PODAR VEGETAÇÃO NA CONCERTINA E TELA – TODO PERÍMETRO", "AUSÊNCIA DE GRADE DE PROTEÇÃO", "MANUTENÇÃO NO CABEAMENTO – PRECISA ESTAR ENVELOPADO OU ENTERRADO", "FALTA DE LACRE NO QUADRO DE ENERGIA DA TI", "MANUTENÇÃO NA TRANCA DO QUADRO DE ENERGIA DA TI", ],
+            "MINISTÉRIOS DO TRABALHO": [ "OUTROS", "AUSÊNCIA DE ANTIDERRAPANTE", "AUSÊNCIA DE CAPA DE PROTEÇÃO NA LUMINÁRIA", "AUSÊNCIA DE PLACA DE “PARE”", "AUSÊNCIA DE GRADE DE PROTEÇÃO", "AUSÊNCIA DE ISOLAMENTO", "AUSÊNCIA DE PAVIMENTAÇÃO", "AUSÊNCIA DE TAMPA", "AUSÊNCIA DE TELHA", "AUSÊNCIA DE SALA DE BLOCO", "AUSÊNCIA DE GUARDA RAIL", "INFILTRAÇÃO", "AUSÊNCIA DE LIMPEZA", "AUSÊNCIA DE LUZ DE EMERGÊNCIA", "MANUTENÇÃO NOS BANCOS", "MANUTENÇÃO NA LUMINÁRIA", "AUSÊNCIA DE MANUTENÇÃO", "MELHORIA NA FIAÇÃO", "AUSÊNCIA DE PINTURA NAS FAIXAS DE PEDESTRE", "AUSÊNCIA DE PLACA “PROIBIDO FUMAR”", "AUSÊNCIA DE ROTA DE FUGA", "AUSÊNCIA DE PLACA DE EMERGÊNCIA", "RACHADURA NA PAREDE", "RASGO NA LONA", "REALOCAÇÃO DE EXTINTORES", "REMOÇÃO DE COLMEIA", "REMOÇÃO DE ESTRUTURA", "REMOÇÃO DE RESÍDUOS", ],
+            "APPA": [ "OUTROS", "AUSÊNCIA DE GRADE DE PROTEÇÃO", "AUSÊNCIA DE ISOLAMENTO", "AUSÊNCIA DE TAMPA", "LIMPEZA DA VIA", "MANUTENÇÃO NA GRADE", "MANUTENÇÃO NA IDENTIFICAÇÃO DOS RESÍDUOS", "MANUTENÇÃO NO BUEIRO", "RASGO NA LONA", "RESÍDUOS ESPALHADOS", "RESÍDUOS NA CANALETA", ],
+            "RFB": ["OUTROS"],"MAPA": ["OUTROS"],
+          },
         },
         
         AUDIT_TYPES: {
-          'GERAL': { name: 'Auditoria Perimetral – GERAL', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_GERAL', locationsMapId: 'LOCAIS_POR_ZONA_GERAL', predefinedPointsId: 'APONTAMENTOS_PERIMETRAL_GERAL' }},
-          'SIRENE': { name: 'Teste de sirene', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_SEG_PATRIMONIAL_SIRENE', locationsMapId: 'LOCAIS_POR_ZONA_SEG_PATRIMONIAL_SIRENE', predefinedPointsId: 'APONTAMENTOS_VAZIO' }},
-          'PERIMETRAL_SENSOR': { name: 'Auditoria Perimetral – Sensor', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_SEG_PATRIMONIAL_PERIMETRAL_SENSOR', locationsMapId: 'LOCAIS_POR_ZONA_SEG_PATRIMONIAL_PERIMETRAL_SENSOR', predefinedPointsId: 'APONTAMENTOS_SENSOR' }},
-          'CFTV': { name: 'Auditoria – CFTV', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_GERAL', locationsMapId: 'LOCAIS_POR_ZONA_GERAL', predefinedPointsId: 'APONTAMENTOS_CFTV' }},
-          'ACESS_CONTROL': { name: 'Auditoria – Controle de Acesso', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_SEG_PATRIMONIAL_CONTROLE_DE_ACESSO', locationsMapId: 'LOCAIS_POR_ZONA_SEG_PATRIMONIAL_CONTROLE_DE_ACESSO', predefinedPointsId: 'APONTAMENTOS_CONTROLE_ACESSO' }}
+          'GERAL': { name: 'Auditoria Perimetral – GERAL', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_GERAL', locationsMapId: 'LOCAIS_POR_ZONA_GERAL', predefinedPointsConfig: { type: 'simple', collectionId: 'APONTAMENTOS_PERIMETRAL_GERAL' }}},
+          'SIRENE': { name: 'Teste de sirene', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_SEG_PATRIMONIAL_SIRENE', locationsMapId: 'LOCAIS_POR_ZONA_SEG_PATRIMONIAL_SIRENE', predefinedPointsConfig: { type: 'simple', collectionId: 'APONTAMENTOS_SIRENE' }}},
+          'PERIMETRAL_SENSOR': { name: 'Auditoria Perimetral – Sensor', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_SEG_PATRIMONIAL_PERIMETRAL_SENSOR', locationsMapId: 'LOCAIS_POR_ZONA_SEG_PATRIMONIAL_PERIMETRAL_SENSOR', predefinedPointsConfig: { type: 'simple', collectionId: 'APONTAMENTOS_SENSOR' }}},
+          'CFTV': { name: 'Auditoria – CFTV', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_GERAL', locationsMapId: 'LOCAIS_POR_ZONA_GERAL', predefinedPointsConfig: { type: 'simple', collectionId: 'APONTAMENTOS_CFTV' }}},
+          'ACESS_CONTROL': { name: 'Auditoria – Controle de Acesso', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_SEG_PATRIMONIAL_CONTROLE_DE_ACESSO', locationsMapId: 'LOCAIS_POR_ZONA_SEG_PATRIMONIAL_CONTROLE_DE_ACESSO', predefinedPointsConfig: { type: 'simple', collectionId: 'APONTAMENTOS_CONTROLE_ACESSO' }}},
+          'CONFORMIDADE': { name: 'Conformidade', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_GERAL', locationsMapId: 'LOCAIS_POR_ZONA_GERAL', predefinedPointsConfig: { type: 'byAuditedEntity', collectionId: 'APONTAMENTOS_CONFORMIDADE_POR_ORGAO' }}}
         },
 
         SECTOR_CONFIG: {
-          'CONFORMIDADE': { auditTypeIds: ['GERAL'] },
+          'CONFORMIDADE': { auditTypeIds: ['GERAL', 'CONFORMIDADE'] },
           'SESMT': { auditTypeIds: ['GERAL'] },
           'CONSULTORIA': { auditTypeIds: ['GERAL'] },
-          'SEGURANÇA PATRIMONIAL':{ auditTypeIds: ['GERAL', 'SIRENE', 'PERIMETRAL_SENSOR', 'CFTV', 'ACESS_CONTROL'] },
+          'SEGURANÇA PATRIMONIAL':{ auditTypeIds: ['GERAL', 'CONFORMIDADE', 'SIRENE', 'PERIMETRAL_SENSOR', 'CFTV', 'ACESS_CONTROL'] },
           'DEFAULT': { auditTypeIds: ['GERAL'] }
         }
       };
@@ -158,7 +164,7 @@
 
       function ConfirmationModal({ action, onCancel }) {
           if (!action) return null;
-          const colorClasses = { green: 'bg-green-600 hover:bg-green-700', red: 'bg-red-600 hover:bg-red-700', default: 'bg-blue-600 hover:bg-blue-700' };
+          const colorClasses = { green: 'bg-green-600 hover:bg-green-700', red: 'bg-red-600 hover:bg-red-700', yellow: 'bg-yellow-500 hover:bg-yellow-600', default: 'bg-blue-600 hover:bg-blue-700' };
           const confirmColorClass = colorClasses[action.color] || colorClasses.default;
           return ( <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"> <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm"> <p className="text-center mb-4">{action.message}</p> <div className="flex justify-center gap-4"> <button onClick={onCancel} className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400">Cancelar</button> <button onClick={action.onConfirm} className={`px-4 py-2 text-white rounded-lg ${confirmColorClass}`}>Confirmar</button> </div> </div> </div> );
       }
@@ -241,7 +247,6 @@
         const [loadingMessage, setLoadingMessage] = React.useState('');
         const [confirmAction, setConfirmAction] = React.useState(null);
 
-        // CORREÇÃO 3: Array com as mensagens dinâmicas
         const loadingMessages = [
             "Estamos salvando sua auditoria...",
             "Aguarde...",
@@ -250,7 +255,6 @@
             "Garanta uma conexão estável durante o salvamento"
         ];
         
-        // CORREÇÃO 3: Efeito para alternar as mensagens de salvamento
         React.useEffect(() => {
             let interval;
             if (isSaving) {
@@ -275,8 +279,8 @@
         const RESPONSIBLE_SECTORS_OPTIONS = selectedAuditTypeConfig ? AUDIT_CONFIG.OPTION_SETS[selectedAuditTypeConfig.responsibleSectorsId] : [];
         const ZONES_OPTIONS = selectedAuditTypeConfig ? AUDIT_CONFIG.OPTION_SETS[selectedAuditTypeConfig.zonesId] : [];
         const LOCATIONS_MAP = selectedAuditTypeConfig ? AUDIT_CONFIG.OPTION_SETS[selectedAuditTypeConfig.locationsMapId] : {};
-        const predefinedPointsId = selectedAuditTypeConfig?.predefinedPointsId;
-        const predefinedPointsData = predefinedPointsId ? AUDIT_CONFIG.OPTION_SETS[predefinedPointsId] : null;
+        const predefinedPointsConfig = selectedAuditTypeConfig?.predefinedPointsConfig;
+        const predefinedPointsData = predefinedPointsConfig ? AUDIT_CONFIG.OPTION_SETS[predefinedPointsConfig.collectionId] : null;
 
         const base64ToFile = (base64, filename, mimeType) => {
             const byteCharacters = atob(base64.split(',')[1]);
@@ -287,10 +291,15 @@
         const handleAuditTypeChange = (e) => {
             const newType = e.target.value;
             if (entries.length > 0 && newType !== auditType) {
-                if (window.confirm("Alterar o tipo de auditoria irá remover os apontamentos existentes. Deseja continuar?")) {
-                    setEntries([]);
-                    setAuditType(newType);
-                }
+                 setConfirmAction({
+                    message: "Alterar o tipo de auditoria irá remover os apontamentos existentes. Deseja continuar?",
+                    color: "yellow",
+                    onConfirm: () => {
+                        setEntries([]);
+                        setAuditType(newType);
+                        setConfirmAction(null);
+                    }
+                });
             } else {
                 setAuditType(newType);
             }
@@ -300,22 +309,48 @@
             const loadInitialData = async () => {
                 if (auditId) {
                     setIsSaving(true);
+                    setLoadingMessage("Carregando auditoria...");
                     try {
                         const auditDoc = await getDoc(doc(db, "audits", auditId));
+                        let loadedAuditType = 'GERAL';
                         if (auditDoc.exists()) {
                             const data = auditDoc.data();
                             setAuditTitle(data.title || '');
-                            setAuditType(data.auditType || 'GERAL');
+                            loadedAuditType = data.auditType || 'GERAL';
+                            setAuditType(loadedAuditType);
                         }
+                        
+                        const configForLoadedAudit = AUDIT_CONFIG.AUDIT_TYPES[loadedAuditType]?.config.predefinedPointsConfig;
+                        const dataForLoadedAudit = configForLoadedAudit ? AUDIT_CONFIG.OPTION_SETS[configForLoadedAudit.collectionId] : null;
+
                         const entriesSnapshot = await getDocs(query(collection(db, "audits", auditId, "entries")));
-                        const fetchedEntries = entriesSnapshot.docs.map(d => ({ ...d.data(), id: d.id })).sort((a, b) => a.entryNumber - b.entryNumber);
-                        setEntries(fetchedEntries.map(entry => ({
-                            ...entry,
-                            clientTimestamp: entry.entryTimestamp?.toDate(),
-                            evidences: entry.evidenceUrls ? Object.entries(entry.evidenceUrls).map(([key, fileId]) => ({
-                                type: 'remote', key, fileId, preview: `https://drive.google.com/thumbnail?id=${fileId}&sz=s220`
-                            })) : []
-                        })));
+                        const fetchedEntries = entriesSnapshot.docs.map(d => ({ ...d.data(), firestoreId: d.id })).sort((a, b) => a.entryNumber - b.entryNumber);
+                        
+                        setEntries(fetchedEntries.map(entry => {
+                            let descriptionSelection = entry.description;
+                            let manualDescription = '';
+                            
+                            if(configForLoadedAudit && dataForLoadedAudit){
+                                let predefinedOptions = [];
+                                if (configForLoadedAudit.type === 'byAuditedEntity') {
+                                    predefinedOptions = dataForLoadedAudit[entry.auditedEntity] || ["OUTROS"];
+                                } else if (configForLoadedAudit.type === 'simple'){
+                                    predefinedOptions = dataForLoadedAudit || [];
+                                }
+                                
+                                const isPredefined = predefinedOptions.includes(entry.description);
+                                descriptionSelection = isPredefined ? entry.description : "OUTROS";
+                                manualDescription = isPredefined ? "" : entry.description;
+                            }
+
+                            return {
+                                ...entry, id: entry.firestoreId, clientTimestamp: entry.entryTimestamp?.toDate(),
+                                descriptionSelection, manualDescription,
+                                evidences: entry.evidenceUrls ? Object.entries(entry.evidenceUrls).map(([key, fileId]) => ({
+                                    type: 'remote', key, fileId, preview: `https://drive.google.com/thumbnail?id=${fileId}&sz=s220`
+                                })) : []
+                            };
+                        }));
                     } catch (error) { notify("Erro ao carregar auditoria: " + error.message, 'error'); } 
                     finally { setIsSaving(false); }
                 } else {
@@ -344,47 +379,70 @@
             }
         }, [entries, auditTitle, auditType, auditId]);
 
-        const addEntry = () => {
-             if (!selectedAuditTypeConfig) return;
-             // CORREÇÃO 1: a descrição sempre começa em branco.
+        const addEntry = (autoAdd = false, type = auditType) => {
+             const config = AUDIT_CONFIG.AUDIT_TYPES[type]?.config;
+             if (!config) return;
+
+             const predefinedPointsConfig = config.predefinedPointsConfig;
+             const predefinedPointsData = predefinedPointsConfig ? AUDIT_CONFIG.OPTION_SETS[predefinedPointsConfig.collectionId] : null;
+
              const newEntryData = {
                 id: Date.now(), entryNumber: entries.length + 1,
                 description: '', 
-                complement: '',
-                responsibleSector: RESPONSIBLE_SECTORS_OPTIONS[0],
+                descriptionSelection: 'OUTROS', 
+                manualDescription: '',
+                complement: '', 
+                responsibleSector: AUDIT_CONFIG.OPTION_SETS[config.responsibleSectorsId][0],
                 evidences: [], clientTimestamp: new Date()
             };
+            
+            if (predefinedPointsData) {
+                if (predefinedPointsConfig.type === 'byAuditedEntity') {
+                    const firstEntity = AUDIT_CONFIG.OPTION_SETS[config.auditedEntitiesId][0];
+                    newEntryData.descriptionSelection = (predefinedPointsData[firstEntity] || ["OUTROS"])[0];
+                } else if (predefinedPointsConfig.type === 'simple') {
+                    newEntryData.descriptionSelection = predefinedPointsData[0] || 'OUTROS';
+                }
+            }
 
             if (entries.length > 0) {
                 const lastEntry = entries[entries.length - 1];
                 Object.assign(newEntryData, { auditedEntity: lastEntry.auditedEntity, operationalZone: lastEntry.operationalZone, location: lastEntry.location, responsibleSector: lastEntry.responsibleSector });
             } else {
-                Object.assign(newEntryData, { auditedEntity: AUDITED_ENTITIES_OPTIONS[0], operationalZone: ZONES_OPTIONS[0], location: LOCATIONS_MAP[ZONES_OPTIONS[0]] ? LOCATIONS_MAP[ZONES_OPTIONS[0]][0] : '' });
+                const zones = AUDIT_CONFIG.OPTION_SETS[config.zonesId];
+                const locations = AUDIT_CONFIG.OPTION_SETS[config.locationsMapId];
+                const firstZone = zones[0];
+                Object.assign(newEntryData, { 
+                    auditedEntity: AUDIT_CONFIG.OPTION_SETS[config.auditedEntitiesId][0], 
+                    operationalZone: firstZone, 
+                    location: locations[firstZone] ? locations[firstZone][0] : '' 
+                });
             }
-            
-            // Lógica de preenchimento removida daqui.
-            setEntries([...entries, newEntryData]);
+            setEntries(prevEntries => [...prevEntries, newEntryData]);
         };
 
-        const removeEntry = (index) => setConfirmAction({ message: "Tem certeza?", color: "red", onConfirm: () => { setEntries(entries.filter((_, i) => i !== index).map((e, i) => ({ ...e, entryNumber: i + 1 }))); setConfirmAction(null); } });
+        const removeEntry = (index) => setConfirmAction({ message: "Tem certeza que deseja remover este apontamento?", color: "red", onConfirm: () => { setEntries(entries.filter((_, i) => i !== index).map((e, i) => ({ ...e, entryNumber: i + 1 }))); setConfirmAction(null); } });
         
         const updateEntry = (index, field, value) => {
             const newEntries = [...entries];
             const entry = newEntries[index];
             entry[field] = value;
-            if (field === 'operationalZone') { entry.location = LOCATIONS_MAP[value] ? LOCATIONS_MAP[value][0] : ''; }
+
+            if (field === 'auditedEntity' && predefinedPointsConfig?.type === 'byAuditedEntity') {
+                const newOptions = predefinedPointsData[value] || ["OUTROS"];
+                entry.descriptionSelection = newOptions[0];
+                entry.manualDescription = '';
+            }
+            if (field === 'operationalZone') { 
+                entry.location = LOCATIONS_MAP[value] ? LOCATIONS_MAP[value][0] : ''; 
+            }
+            if (field === 'descriptionSelection' && value !== 'OUTROS') {
+                entry.manualDescription = '';
+            }
             setEntries(newEntries);
         };
 
         const handleTitleChange = (e) => setAuditTitle(e.target.value.replace(/\b\w/g, c => c.toUpperCase()));
-        
-        const handlePredefinedPointChange = (index, e) => {
-            const selectedPoint = e.target.value;
-            if (selectedPoint) {
-                updateEntry(index, 'description', selectedPoint);
-            }
-            e.target.value = ''; // Reseta para o placeholder
-        };
 
         const handleImageChange = async (index, event) => {
             const files = Array.from(event.target.files);
@@ -412,7 +470,8 @@
         const saveAudit = async () => {
             if (!auditTitle.trim() || !auditType) { notify("Preencha o Título e o Tipo de Auditoria.", "warning"); return; }
             for (const entry of entries) {
-                if (!entry.description || !entry.responsibleSector) { notify("Cada apontamento deve ter descrição e setor responsável.", "warning"); return; }
+                 const finalDescription = predefinedPointsConfig ? (entry.descriptionSelection === 'OUTROS' ? entry.manualDescription : entry.descriptionSelection) : entry.description;
+                if (!finalDescription || !entry.responsibleSector) { notify("Cada apontamento deve ter descrição e setor responsável.", "warning"); return; }
             }
             setIsSaving(true);
             try {
@@ -432,12 +491,13 @@
                 }));
                 const batch = writeBatch(db);
                 let currentAuditId = auditId;
-                const auditData = { userId: userData.uid, userFullName: userData.fullName, title: auditTitle, auditType, status: "pending", entryCount: entries.length, firstEntrySummary: { auditedEntity: entries[0].auditedEntity, operationalZone: entries[0].operationalZone } };
+                const auditData = { userId: userData.uid, userFullName: userData.fullName, title: auditTitle, auditType, status: "pending", entryCount: entries.length, firstEntrySummary: entries.length > 0 ? { auditedEntity: entries[0].auditedEntity, operationalZone: entries[0].operationalZone } : {} };
                 if (!currentAuditId) { const ref = doc(collection(db, "audits")); currentAuditId = ref.id; auditData.createdAt = serverTimestamp(); batch.set(ref, auditData); } else { batch.update(doc(db, "audits", currentAuditId), auditData); const old = await getDocs(collection(db, "audits", currentAuditId, "entries")); old.forEach(d => batch.delete(d.ref)); }
                 
                 entriesWithUrls.forEach(entry => {
-                    const { evidences, id, clientTimestamp, ...baseEntry } = entry;
-                    batch.set(doc(collection(db, "audits", currentAuditId, "entries")), { ...baseEntry, evidenceUrls: entry.evidenceUrls, userId: userData.uid, technicalSector: userData.sector, entryTimestamp: clientTimestamp });
+                    const { evidences, id, clientTimestamp, descriptionSelection, manualDescription, ...baseEntry } = entry;
+                    const finalDescription = predefinedPointsConfig ? (descriptionSelection === 'OUTROS' ? manualDescription : descriptionSelection) : baseEntry.description;
+                    batch.set(doc(collection(db, "audits", currentAuditId, "entries")), { ...baseEntry, description: finalDescription, evidenceUrls: entry.evidenceUrls, userId: userData.uid, technicalSector: userData.sector, entryTimestamp: clientTimestamp });
                 });
                 
                 await batch.commit(); await clearDraft(); notify("Auditoria salva!", "success"); setView('home');
@@ -472,14 +532,23 @@
                 <div className={`transition-opacity duration-500 ${!auditType ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
                     {!auditType && <div className="text-center p-4 bg-yellow-100 text-yellow-800 rounded-lg mb-6">Selecione um Tipo de Auditoria para continuar.</div>}
                     <div className="space-y-6">
-                        {entries.map((entry, index) => (
+                        {entries.map((entry, index) => {
+                             let predefinedOptions = [];
+                             if (predefinedPointsConfig && predefinedPointsData) {
+                                 if (predefinedPointsConfig.type === 'byAuditedEntity') {
+                                     predefinedOptions = predefinedPointsData[entry.auditedEntity] || ["OUTROS"];
+                                 } else if (predefinedPointsConfig.type === 'simple') {
+                                     predefinedOptions = predefinedPointsData || [];
+                                 }
+                             }
+                            
+                            return (
                             <div key={entry.id || index} className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500">
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className="text-lg font-semibold">Apontamento #{entry.entryNumber}</h3>
                                     <button onClick={() => removeEntry(index)} className="text-red-500 hover:text-red-700"><i className="fas fa-trash-alt"></i></button>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {/* Campos de localização e responsabilidade movidos para cima */}
                                     <div>
                                         <label className="block text-sm font-medium mb-1">Órgão Anuente</label>
                                         <select value={entry.auditedEntity} onChange={e => updateEntry(index, 'auditedEntity', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
@@ -506,19 +575,19 @@
                                     </div>
 
                                     <div className="md:col-span-2 space-y-2">
-                                        {predefinedPointsData && predefinedPointsData.length > 0 && (
+                                        <div className="font-medium text-sm">Apontamento</div>
+                                        {predefinedPointsConfig ? (
                                             <div>
-                                                <label className="block text-sm font-medium">Apontamentos Predefinidos</label>
-                                                <select onChange={(e) => handlePredefinedPointChange(index, e)} className="w-full p-2 bg-gray-100 border rounded-md">
-                                                    <option value="">-- Selecione para preencher --</option>
-                                                    {predefinedPointsData.map(desc => <option key={desc} value={desc}>{desc}</option>)}
+                                                <select value={entry.descriptionSelection} onChange={e => updateEntry(index, 'descriptionSelection', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
+                                                    {predefinedOptions.map(desc => <option key={desc} value={desc}>{desc}</option>)}
                                                 </select>
+                                                {entry.descriptionSelection === 'OUTROS' && (
+                                                    <textarea value={entry.manualDescription} onChange={e => updateEntry(index, 'manualDescription', e.target.value)} placeholder="Descreva o apontamento (EM MAIÚSCULAS)" className="w-full p-2 bg-gray-50 border rounded-md h-24 uppercase mt-2" required />
+                                                )}
                                             </div>
+                                        ) : (
+                                             <textarea value={entry.description} onChange={e => updateEntry(index, 'description', e.target.value)} placeholder="APONTAMENTO (EM MAIÚSCULAS)" className="w-full p-2 bg-gray-50 border rounded-md h-24 uppercase" required></textarea>
                                         )}
-                                        <div>
-                                            <label className="block text-sm font-medium">Descrição do Apontamento</label>
-                                            <textarea value={entry.description} onChange={e => updateEntry(index, 'description', e.target.value)} placeholder="APONTAMENTO (EM MAIÚSCULAS)" className="w-full p-2 bg-gray-50 border rounded-md h-24 uppercase" required></textarea>
-                                        </div>
                                     </div>
                                     
                                     <textarea value={entry.complement} onChange={e => updateEntry(index, 'complement', e.target.value)} placeholder="Complemento (opcional)" className="w-full p-2 bg-gray-50 border rounded-md md:col-span-2 h-20"></textarea>
@@ -537,14 +606,14 @@
                                     </div>
                                 </div>
                             </div>
-                        ))}
+                        )})}
                     </div>
 
                     <div className="mt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-                        <button onClick={addEntry} disabled={!auditType || isSaving} className="w-full md:w-auto px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                        <button onClick={() => addEntry()} disabled={!auditType || isSaving} className="w-full md:w-auto px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
                             <i className="fas fa-plus mr-2"></i> Adicionar Apontamento
                         </button>
-                        <button onClick={saveAudit} disabled={!auditType || isSaving} className="w-full md:w-auto px-8 py-4 bg-blue-700 text-white font-bold rounded-lg hover:bg-blue-800 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                        <button onClick={saveAudit} disabled={!auditType || isSaving || entries.length === 0} className="w-full md:w-auto px-8 py-4 bg-blue-700 text-white font-bold rounded-lg hover:bg-blue-800 disabled:bg-gray-400 disabled:cursor-not-allowed">
                             {isSaving ? 'Salvando...' : 'Salvar Auditoria'}
                         </button>
                     </div>
@@ -757,7 +826,7 @@
         const [confirmAction, setConfirmAction] = React.useState(null);
         const formatTimestamp = (timestamp) => { if (!timestamp) return null; const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp); return date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); };
         React.useEffect(() => { if (!auditId) { setErrorData("Nenhuma auditoria selecionada."); setLoadingData(false); return; } const fetchAuditData = async () => { try { const auditDoc = await getDoc(doc(db, "audits", auditId)); if (auditDoc.exists()) { setAudit(auditDoc.data()); } else { throw new Error("Auditoria não encontrada."); } const entriesSnapshot = await getDocs(collection(db, "audits", auditId, "entries")); const entriesData = entriesSnapshot.docs.map(d => d.data()).sort((a,b) => a.entryNumber - b.entryNumber); setEntries(entriesData); } catch (e) { setErrorData(e.message); } finally { setLoadingData(false); } }; fetchAuditData(); }, [auditId]);
-        const handleDeleteAudit = () => setConfirmAction({ message: "Apagar permanentemente?", color: 'red', onConfirm: async () => { setLoading(true); setConfirmAction(null); try { const entriesRef = collection(db, "audits", auditId, "entries"); const entriesSnapshot = await getDocs(entriesRef); const deleteBatch = writeBatch(db); entriesSnapshot.forEach(d => deleteBatch.delete(d.ref)); deleteBatch.delete(doc(db, "audits", auditId)); await deleteBatch.commit(); notify("Auditoria apagada!", "success"); setView('history'); } catch (err) { notify("Falha ao apagar.", "error"); } finally { setLoading(false); } } });
+        const handleDeleteAudit = () => setConfirmAction({ message: "Apagar permanentemente?", color: 'red', onConfirm: async () => { setLoading(true); setConfirmAction(null); try { const entriesRef = collection(db, "audits", auditId, "entries"); const entriesSnapshot = await getDocs(entriesRef); const deleteBatch = writeBatch(db); entriesSnapshot.forEach(d => deleteBatch.delete(d.ref)); deleteBatch.delete(doc(db, "audits", auditId)); await batch.commit(); notify("Auditoria apagada!", "success"); setView('history'); } catch (err) { notify("Falha ao apagar.", "error"); } finally { setLoading(false); } } });
         if (loadingData) return <div className="flex justify-center items-center h-screen"><div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div></div>;
         if (errorData) return <div className="p-8 text-center text-red-500">{errorData}</div>;
         return ( <div className="p-4 md:p-8 max-w-4xl mx-auto"> <ConfirmationModal action={confirmAction} onCancel={() => setConfirmAction(null)} /> <header className="flex justify-between items-start mb-6"> <div> <h1 className="text-2xl font-bold">{audit?.title || 'Visualizar Auditoria'}</h1> <p className="text-sm text-gray-500 font-mono">{auditId}</p> </div> <button onClick={() => setView('history')} className="px-4 py-2 text-sm bg-white rounded-lg shadow-sm hover:bg-gray-50">Voltar</button> </header> <div className="space-y-6"> {entries.map((entry, index) => ( <div key={index} className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-indigo-500"> <h3 className="text-lg font-semibold mb-4">Apontamento #{entry.entryNumber}</h3> <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm"> <div className="bg-gray-50 p-3 rounded-lg"><strong>Órgão:</strong> {entry.auditedEntity}</div> <div className="bg-gray-50 p-3 rounded-lg"><strong>Setor Responsável:</strong> {entry.responsibleSector}</div> <div className="bg-gray-50 p-3 rounded-lg"><strong>Setor Técnico:</strong> {entry.technicalSector}</div> <div className="bg-gray-50 p-3 rounded-lg"><strong>Zona:</strong> {entry.operationalZone}</div> <div className="bg-gray-50 p-3 rounded-lg md:col-span-2"><strong>Local:</strong> {entry.location}</div> <div className="bg-gray-50 p-3 rounded-lg md:col-span-2"><strong className="block mb-1">Apontamento:</strong><p className="uppercase font-mono whitespace-pre-wrap">{entry.description}</p></div> {entry.complement && (<div className="bg-gray-50 p-3 rounded-lg md:col-span-2"><strong className="block mb-1">Complemento:</strong><p className="whitespace-pre-wrap">{entry.complement}</p></div>)} <div className="md:col-span-2"><strong className="block mb-2">Evidências:</strong><div className="flex flex-wrap gap-4">{entry.evidenceUrls && Object.keys(entry.evidenceUrls).length > 0 ? Object.values(entry.evidenceUrls).map((fileId, evIndex) => (<button key={evIndex} onClick={() => setSelectedImage(`https://drive.google.com/thumbnail?id=${fileId}&sz=w1280`)}><img src={`https://drive.google.com/thumbnail?id=${fileId}&sz=s220`} alt={`Evidência ${evIndex + 1}`} className="w-32 h-32 object-cover rounded-lg shadow-md hover:scale-105" /></button>)) : <p className="text-gray-500">Nenhuma evidência.</p>}</div></div> </div> </div> ))} </div> <div className="mt-8 flex justify-end gap-4"> {audit && (userData.role === 'admin' || (audit.userId === userData.uid && audit.status === 'pending')) && (<button onClick={handleDeleteAudit} className="px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700"><i className="fas fa-trash-alt mr-2"></i> Apagar</button>)} </div> {selectedImage && (<div className="fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-50" onClick={() => setSelectedImage(null)}><div className="relative max-w-4xl max-h-4/5 p-4" onClick={(e) => e.stopPropagation()}><button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 m-4 text-white text-4xl">&times;</button><img src={selectedImage} alt="Evidência ampliada" className="max-w-full max-h-[80vh] object-contain rounded-lg" /></div></div>)} </div> );
@@ -769,4 +838,3 @@
     </script>
 </body>
 </html>
-}
