@@ -97,106 +97,78 @@
       const STORENAME = 'auditDrafts';
       const DRAFT_KEY = 'current_audit_draft';
 
-      async function openDb() {
-        return idb.openDB(DBNAME, 1, {
-          upgrade(db) {
-            db.createObjectStore(STORENAME);
-          },
-        });
-      }
-
-      async function saveDraft(draft) {
-        const db = await openDb();
-        await db.put(STORENAME, draft, DRAFT_KEY);
-      }
-
-      async function loadDraft() {
-        const db = await openDb();
-        return db.get(STORENAME, DRAFT_KEY);
-      }
-
-      async function clearDraft() {
-        const db = await openDb();
-        await db.delete(STORENAME, DRAFT_KEY);
-      }
+      async function openDb() { return idb.openDB(DBNAME, 1, { upgrade(db) { db.createObjectStore(STORENAME); }, }); }
+      async function saveDraft(draft) { const db = await openDb(); await db.put(STORENAME, draft, DRAFT_KEY); }
+      async function loadDraft() { const db = await openDb(); return db.get(STORENAME, DRAFT_KEY); }
+      async function clearDraft() { const db = await openDb(); await db.delete(STORENAME, DRAFT_KEY); }
       
-      // Dados estáticos da aplicação
       const SECTORS = ["SESMT","CONSULTORIA", "CONFORMIDADE", "SEGURANÇA PATRIMONIAL"];
-      const AUDITED_ENTITIES = ["RFB", "APPA", "MAPA", "MINISTÉRIOS DO TRABALHO", "CONPORTOS"];
-      const RESPONSIBLE_SECTORS = ["T.I", "MEIO AMBIENTE", "ENGENHARIA", "MANUTENÇÃO MECÂNICA", "MANUTENÇÃO CIVIL", "SEGURANÇA DO TRABALHO", "ELÉTRICA", "QUALIDADE", "OPERAÇÃO"];
-      const ZONES = {
-        "ZONA 1": ["Estacionamento Diretoria", "Estacionamento Geral", "Subestação de Energia 1", "Sala Administrativo 1 (Contabilidade, Diretoria, Controladoria etc.)", "Sala Administrativo 2 (Cadastro, T.I, Aduaneiro)", "Sala de Recursos Humanos", "Sala de treinamento", "Guarita", "Sala de apoio", "Lava-car", "Balança (Portaria)", "Central de Resíduos", "Casa de Bombas 1", "AZ-Oficina", "Subestação de Energia 2", "AZ-01", "AZ-02", "AZ-03", "AZ-04", "AZ-17", "AZ-18", "AZ-28", "Balança (Lado AZ-28)", "Central de Fertilizantes", "Posto", "Refeitório", "Sala CCOM"],
-        "ZONA 2": ["Scanner", "Atracadouro", "Marégrafo", "AZ-05", "AZ-06", "AZ-07", "AZ-11", "Castelo D’água", "Sala Oficina", "Sala Almoxarifado", "Sala SESMT", "Sala Operações", "Sala Manutenção Eletrica", "Subestação de Energia 3", "Subestação de Energia 4", "Casa de Bombas 2", "Berço de Atracação 1", "Berço de Atracação 2"],
-        "ZONA 3": ["Balança (Caís)", "AZ-08", "AZ-09", "AZ-10", "AZ-12", "AZ-13", "AZ-14", "AZ-19", "AZ-23", "AZ-25", "AZ-Ensacados", "Balança (Lado Silo)", "Oficina MHC", "SILO-01", "SILO-02", "SILO-03", "SILO-04", "SILO-05", "SILO-06", "Subestação Silos", "Sala compressor", "Moega"],
-        "ZONA 4": ["AZ-15", "AZ-16", "AZ-20", "AZ-21", "AZ-22", "AZ-24 (Box)", "AZ-26", "AZ-27"],
+
+      const AUDIT_CONFIG = {
+        OPTION_SETS: {
+          ORGAOS_ANUENTES_PADRAO: ["RFB", "APPA", "MAPA", "MINISTÉRIOS DO TRABALHO", "CONPORTOS"],
+          SETORES_RESPONSAVEIS_GERAL: ["T.I", "MEIO AMBIENTE", "ENGENHARIA", "MANUTENÇÃO MECÂNICA", "MANUTENÇÃO CIVIL", "SEGURANÇA DO TRABALHO", "ELÉTRICA", "QUALIDADE", "OPERAÇÃO"],
+          ZONAS_OPERACIONAIS_GERAL: ["ZONA 1", "ZONA 2", "ZONA 3", "ZONA 4"],
+          LOCAIS_POR_ZONA_GERAL: {
+            "ZONA 1": ["Estacionamento Diretoria", "Estacionamento Geral", "Subestação de Energia 1", "Sala Administrativo 1 (Contabilidade, Diretoria, Controladoria etc.)", "Sala Administrativo 2 (Cadastro, T.I, Aduaneiro)", "Sala de Recursos Humanos", "Sala de treinamento", "Guarita", "Sala de apoio", "Lava-car", "Balança (Portaria)", "Central de Resíduos", "Casa de Bombas 1", "AZ-Oficina", "Subestação de Energia 2", "AZ-01", "AZ-02", "AZ-03", "AZ-04", "AZ-17", "AZ-18", "AZ-28", "Balança (Lado AZ-28)", "Central de Fertilizantes", "Posto", "Refeitório", "Sala CCOM"],
+            "ZONA 2": ["Scanner", "Atracadouro", "Marégrafo", "AZ-05", "AZ-06", "AZ-07", "AZ-11", "Castelo D’água", "Sala Oficina", "Sala Almoxarifado", "Sala SESMT", "Sala Operações", "Sala Manutenção Eletrica", "Subestação de Energia 3", "Subestação de Energia 4", "Casa de Bombas 2", "Berço de Atracação 1", "Berço de Atracação 2"],
+            "ZONA 3": ["Balança (Caís)", "AZ-08", "AZ-09", "AZ-10", "AZ-12", "AZ-13", "AZ-14", "AZ-19", "AZ-23", "AZ-25", "AZ-Ensacados", "Balança (Lado Silo)", "Oficina MHC", "SILO-01", "SILO-02", "SILO-03", "SILO-04", "SILO-05", "SILO-06", "Subestação Silos", "Sala compressor", "Moega"],
+            "ZONA 4": ["AZ-15", "AZ-16", "AZ-20", "AZ-21", "AZ-22", "AZ-24 (Box)", "AZ-26", "AZ-27"],
+          },
+          ZONAS_OPERACIONAIS_SEG_PATRIMONIAL_SIRENE: ["Pontos de Acionamento"],
+          LOCAIS_POR_ZONA_SEG_PATRIMONIAL_SIRENE: { "Pontos de Acionamento": ["Botoeira Almoxarifado", "Botoeira CCCOM", "Acionamento Remoto"] },
+          ZONAS_OPERACIONAIS_SEG_PATRIMONIAL_PERIMETRAL_SENSOR: ["ZONA 1", "ZONA 2", "ZONA 3", "ZONA 4"],
+          LOCAIS_POR_ZONA_SEG_PATRIMONIAL_PERIMETRAL_SENSOR: { "ZONA 1": ["Ponto A", "Ponto B", "Ponto C", "Ponto D"], "ZONA 2": ["Ponto A", "Ponto B", "Ponto C", "Ponto D"], "ZONA 3": ["Ponto A", "Ponto B", "Ponto C", "Ponto D"], "ZONA 4": ["Ponto A", "Ponto B", "Ponto C", "Ponto D"] },
+          ZONAS_OPERACIONAIS_SEG_PATRIMONIAL_CONTROLE_DE_ACESSO: ["TORNIQUETES", "DETECTORES DE METAL", "CANCELAS"],
+          LOCAIS_POR_ZONA_SEG_PATRIMONIAL_CONTROLE_DE_ACESSO: { "TORNIQUETES": ["Torniquete 01 (Entrada)", "Torniquete 01 (Saida)", "Torniquete 02 (Entrada)", "Torniquete 02 (Saida)", "Torniquete 03 (Entrada)", "Torniquete 03 (Saida)"], "DETECTORES DE METAL": ["Detector 01", "Detector 02", "Detector 03"], "CANCELAS": ["Cancela Entrada", "Cancela Saida"] },
+          
+          APONTAMENTOS_SIRENE: ["OUTROS", "OK", "NÃO CONFORME"],
+          APONTAMENTOS_PERIMETRAL_GERAL: ["OUTROS", "VEGETAÇÃO", "ESTADO DA CONCERTINA", "ESTADO DA CERCA", "CABEAMENTO EXPOSTO"],
+          APONTAMENTOS_SENSOR: ["OUTROS", "OK", "NÃO CONFORME"],
+          APONTAMENTOS_CFTV: ["OUTROS", "QUALIDADE", "POSICIONAMENTO", "VISIBILIDADE", "TEMPO DE GRAVAÇÃO"],
+          APONTAMENTOS_CONTROLE_ACESSO: ["OUTROS", "OK", "NÃO CONFORME"],
+          APONTAMENTOS_CONFORMIDADE_POR_ORGAO: {
+            "CONPORTOS": [ "OUTROS", "LIMPEZA DA TELA – TODO PERÍMETRO", "LIMPEZA DA CONCERTINA – TODO PERÍMETRO", "LIMPEZA DA TELA E CONCERTINA – TODO PERÍMETRO", "MANUTENÇÃO DA TELA", "AUSÊNCIA DE CONCERTINA", "MANUTENÇÃO NO PORTÃO", "REMOÇÃO DOS MATERIAIS PRÓXIMOS À CONCERTINA", "MANUTENÇÃO NA CONCERTINA", "PODAR VEGETAÇÃO NA CONCERTINA E TELA – TODO PERÍMETRO", "AUSÊNCIA DE GRADE DE PROTEÇÃO", "MANUTENÇÃO NO CABEAMENTO – PRECISA ESTAR ENVELOPADO OU ENTERRADO", "FALTA DE LACRE NO QUADRO DE ENERGIA DA TI", "MANUTENÇÃO NA TRANCA DO QUADRO DE ENERGIA DA TI", ],
+            "MINISTÉRIOS DO TRABALHO": [ "OUTROS", "AUSÊNCIA DE ANTIDERRAPANTE", "AUSÊNCIA DE CAPA DE PROTEÇÃO NA LUMINÁRIA", "AUSÊNCIA DE PLACA DE “PARE”", "AUSÊNCIA DE GRADE DE PROTEÇÃO", "AUSÊNCIA DE ISOLAMENTO", "AUSÊNCIA DE PAVIMENTAÇÃO", "AUSÊNCIA DE TAMPA", "AUSÊNCIA DE TELHA", "AUSÊNCIA DE SALA DE BLOCO", "AUSÊNCIA DE GUARDA RAIL", "INFILTRAÇÃO", "AUSÊNCIA DE LIMPEZA", "AUSÊNCIA DE LUZ DE EMERGÊNCIA", "MANUTENÇÃO NOS BANCOS", "MANUTENÇÃO NA LUMINÁRIA", "AUSÊNCIA DE MANUTENÇÃO", "MELHORIA NA FIAÇÃO", "AUSÊNCIA DE PINTURA NAS FAIXAS DE PEDESTRE", "AUSÊNCIA DE PLACA “PROIBIDO FUMAR”", "AUSÊNCIA DE ROTA DE FUGA", "AUSÊNCIA DE PLACA DE EMERGÊNCIA", "RACHADURA NA PAREDE", "RASGO NA LONA", "REALOCAÇÃO DE EXTINTORES", "REMOÇÃO DE COLMEIA", "REMOÇÃO DE ESTRUTURA", "REMOÇÃO DE RESÍDUOS", ],
+            "APPA": [ "OUTROS", "AUSÊNCIA DE GRADE DE PROTEÇÃO", "AUSÊNCIA DE ISOLAMENTO", "AUSÊNCIA DE TAMPA", "LIMPEZA DA VIA", "MANUTENÇÃO NA GRADE", "MANUTENÇÃO NA IDENTIFICAÇÃO DOS RESÍDUOS", "MANUTENÇÃO NO BUEIRO", "RASGO NA LONA", "RESÍDUOS ESPALHADOS", "RESÍDUOS NA CANALETA", ],
+            "RFB": ["OUTROS"],"MAPA": ["OUTROS"],
+          },
+        },
+        
+        AUDIT_TYPES: {
+          'GERAL': { name: 'Auditoria Perimetral – GERAL', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_GERAL', locationsMapId: 'LOCAIS_POR_ZONA_GERAL', predefinedPointsConfig: { type: 'simple', collectionId: 'APONTAMENTOS_PERIMETRAL_GERAL' }}},
+          'SIRENE': { name: 'Teste de sirene', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_SEG_PATRIMONIAL_SIRENE', locationsMapId: 'LOCAIS_POR_ZONA_SEG_PATRIMONIAL_SIRENE', predefinedPointsConfig: { type: 'simple', collectionId: 'APONTAMENTOS_SIRENE' }}},
+          'PERIMETRAL_SENSOR': { name: 'Auditoria Perimetral – Sensor', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_SEG_PATRIMONIAL_PERIMETRAL_SENSOR', locationsMapId: 'LOCAIS_POR_ZONA_SEG_PATRIMONIAL_PERIMETRAL_SENSOR', predefinedPointsConfig: { type: 'simple', collectionId: 'APONTAMENTOS_SENSOR' }}},
+          'CFTV': { name: 'Auditoria – CFTV', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_GERAL', locationsMapId: 'LOCAIS_POR_ZONA_GERAL', predefinedPointsConfig: { type: 'simple', collectionId: 'APONTAMENTOS_CFTV' }}},
+          'ACESS_CONTROL': { name: 'Auditoria – Controle de Acesso', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_SEG_PATRIMONIAL_CONTROLE_DE_ACESSO', locationsMapId: 'LOCAIS_POR_ZONA_SEG_PATRIMONIAL_CONTROLE_DE_ACESSO', predefinedPointsConfig: { type: 'simple', collectionId: 'APONTAMENTOS_CONTROLE_ACESSO' }}},
+          'CONFORMIDADE': { name: 'CONFORMIDADE', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_GERAL', locationsMapId: 'LOCAIS_POR_ZONA_GERAL', predefinedPointsConfig: { type: 'byAuditedEntity', collectionId: 'APONTAMENTOS_CONFORMIDADE_POR_ORGAO' }}}
+        },
+
+        SECTOR_CONFIG: {
+          'CONFORMIDADE': { auditTypeIds: ['CONFORMIDADE'] },
+          'SESMT': { auditTypeIds: ['GERAL'] },
+          'CONSULTORIA': { auditTypeIds: ['GERAL'] },
+          'SEGURANÇA PATRIMONIAL':{ auditTypeIds: ['GERAL', 'SIRENE', 'PERIMETRAL_SENSOR', 'CFTV', 'ACESS_CONTROL'] },
+          'DEFAULT': { auditTypeIds: ['GERAL'] }
+        }
       };
 
       function Notification({ message, type, onClose }) {
         const [exiting, setExiting] = React.useState(false);
-
-        const colors = {
-            success: 'bg-green-500',
-            error: 'bg-red-500',
-            warning: 'bg-yellow-500',
-            info: 'bg-blue-500',
-        };
-
-        const icons = {
-            success: 'fa-check-circle',
-            error: 'fa-exclamation-circle',
-            warning: 'fa-exclamation-triangle',
-            info: 'fa-info-circle',
-        }
-
-        React.useEffect(() => {
-            const timer = setTimeout(() => {
-                setExiting(true);
-                setTimeout(onClose, 500);
-            }, 5000);
-            return () => clearTimeout(timer);
-        }, [onClose]);
-
-        const handleClose = () => {
-            setExiting(true);
-            setTimeout(onClose, 500);
-        };
-
-        return (
-            <div className={`notification ${exiting ? 'notification-exit-active' : 'notification-enter-active'} flex items-center ${colors[type]} text-white text-sm font-bold px-4 py-3 rounded-lg shadow-lg mb-2`} role="alert">
-                <i className={`fas ${icons[type]} mr-3`}></i>
-                <p>{message}</p>
-                <button onClick={handleClose} className="ml-auto -mr-2 p-1">
-                    <i className="fas fa-times"></i>
-                </button>
-            </div>
-        );
+        const colors = { success: 'bg-green-500', error: 'bg-red-500', warning: 'bg-yellow-500', info: 'bg-blue-500' };
+        const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+        React.useEffect(() => { const timer = setTimeout(() => { setExiting(true); setTimeout(onClose, 500); }, 5000); return () => clearTimeout(timer); }, [onClose]);
+        const handleClose = () => { setExiting(true); setTimeout(onClose, 500); };
+        return ( <div className={`notification ${exiting ? 'notification-exit-active' : 'notification-enter-active'} flex items-center ${colors[type]} text-white text-sm font-bold px-4 py-3 rounded-lg shadow-lg mb-2`} role="alert"> <i className={`fas ${icons[type]} mr-3`}></i> <p>{message}</p> <button onClick={handleClose} className="ml-auto -mr-2 p-1"> <i className="fas fa-times"></i> </button> </div> );
       }
 
       function ConfirmationModal({ action, onCancel }) {
           if (!action) return null;
-
-          const colorClasses = {
-              green: 'bg-green-600 hover:bg-green-700',
-              red: 'bg-red-600 hover:bg-red-700',
-              default: 'bg-blue-600 hover:bg-blue-700'
-          };
-
+          const colorClasses = { green: 'bg-green-600 hover:bg-green-700', red: 'bg-red-600 hover:bg-red-700', yellow: 'bg-yellow-500 hover:bg-yellow-600', default: 'bg-blue-600 hover:bg-blue-700' };
           const confirmColorClass = colorClasses[action.color] || colorClasses.default;
-
-          return (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-                  <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
-                      <p className="text-center mb-4">{action.message}</p>
-                      <div className="flex justify-center gap-4">
-                          <button onClick={onCancel} className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400">Cancelar</button>
-                          <button onClick={action.onConfirm} className={`px-4 py-2 text-white rounded-lg ${confirmColorClass}`}>Confirmar</button>
-                      </div>
-                  </div>
-              </div>
-          );
+          return ( <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"> <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm"> <p className="text-center mb-4">{action.message}</p> <div className="flex justify-center gap-4"> <button onClick={onCancel} className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400">Cancelar</button> <button onClick={action.onConfirm} className={`px-4 py-2 text-white rounded-lg ${confirmColorClass}`}>Confirmar</button> </div> </div> </div> );
       }
 
-      // Componente Principal
       function App() {
         const [view, setView] = React.useState('loading');
         const [user, setUser] = React.useState(null);
@@ -204,364 +176,72 @@
         const [notifications, setNotifications] = React.useState([]);
         const [loading, setLoading] = React.useState(false);
         const [selectedAuditId, setSelectedAuditId] = React.useState(null);
-
-        const notify = (message, type = 'info') => {
-            const id = Date.now();
-            setNotifications(prev => [...prev, { id, message, type }]);
-        };
-
-        const removeNotification = (id) => {
-            setNotifications(prev => prev.filter(n => n.id !== id));
-        };
-
-        React.useEffect(() => {
-          const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-            if (currentUser) {
-              setUser(currentUser);
-              const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-              if (userDoc.exists()) {
-                setUserData(userDoc.data());
-                setView('home');
-              } else {
-                setView('login');
-              }
-            } else {
-              setUser(null);
-              setUserData(null);
-              setView('login');
-            }
-          });
-          return () => unsubscribe();
-        }, []);
-
-        const handleLogout = async () => {
-          await signOut(auth);
-          setView('login');
-        };
-        
-        const handleNavigate = (newView) => {
-            if (newView === 'home' || newView === 'history') {
-                setSelectedAuditId(null);
-            }
-            setView(newView);
-        };
-
-        const handleNewAudit = () => {
-            setSelectedAuditId(null);
-            setView('audit');
-        };
-
-        const handleContinueAudit = (auditId) => {
-            setSelectedAuditId(auditId);
-            setView('audit');
-        };
-
-        const handleViewAudit = (auditId) => {
-            setSelectedAuditId(auditId);
-            setView('viewAudit');
-        };
-
+        const notify = (message, type = 'info') => { const id = Date.now(); setNotifications(prev => [...prev, { id, message, type }]); };
+        const removeNotification = (id) => { setNotifications(prev => prev.filter(n => n.id !== id)); };
+        React.useEffect(() => { const unsubscribe = onAuthStateChanged(auth, async (currentUser) => { if (currentUser) { setUser(currentUser); const userDoc = await getDoc(doc(db, "users", currentUser.uid)); if (userDoc.exists()) { setUserData(userDoc.data()); setView('home'); } else { setView('login'); } } else { setUser(null); setUserData(null); setView('login'); } }); return () => unsubscribe(); }, []);
+        const handleLogout = async () => { await signOut(auth); setView('login'); };
+        const handleNavigate = (newView) => { if (newView === 'home' || newView === 'history') { setSelectedAuditId(null); } setView(newView); };
+        const handleNewAudit = () => { setSelectedAuditId(null); setView('audit'); };
+        const handleContinueAudit = (auditId) => { setSelectedAuditId(auditId); setView('audit'); };
+        const handleViewAudit = (auditId) => { setSelectedAuditId(auditId); setView('viewAudit'); };
         const renderView = () => {
           switch (view) {
-            case 'loading':
-              return <div className="flex justify-center items-center h-screen"><div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div></div>;
-            case 'login':
-              return <LoginPage setView={handleNavigate} notify={notify} setLoading={setLoading} />;
-            case 'register':
-              return <RegisterPage setView={handleNavigate} notify={notify} setLoading={setLoading} />;
-            case 'forgotPassword':
-              return <ForgotPasswordPage setView={handleNavigate} notify={notify} setLoading={setLoading} />;
-            case 'home':
-              return <HomePage userData={userData} setView={handleNavigate} handleLogout={handleLogout} handleNewAudit={handleNewAudit} />;
-            case 'audit':
-              return <AuditForm userData={userData} setView={handleNavigate} auditId={selectedAuditId} notify={notify} />;
-            case 'history':
-              return <HistoryPage userData={userData} setView={handleNavigate} onContinue={handleContinueAudit} onView={handleViewAudit} notify={notify} setLoading={setLoading} />;
-            case 'account':
-              return <AccountPage userData={userData} setUserData={setUserData} setView={handleNavigate} notify={notify} />;
-            case 'viewAudit':
-              return <ViewAuditPage userData={userData} setView={handleNavigate} auditId={selectedAuditId} notify={notify} setLoading={setLoading} />;
-            default:
-              return <LoginPage setView={handleNavigate} notify={notify} setLoading={setLoading} />;
+            case 'loading': return <div className="flex justify-center items-center h-screen"><div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div></div>;
+            case 'login': return <LoginPage setView={handleNavigate} notify={notify} setLoading={setLoading} />;
+            case 'register': return <RegisterPage setView={handleNavigate} notify={notify} setLoading={setLoading} />;
+            case 'forgotPassword': return <ForgotPasswordPage setView={handleNavigate} notify={notify} setLoading={setLoading} />;
+            case 'home': return <HomePage userData={userData} setView={handleNavigate} handleLogout={handleLogout} handleNewAudit={handleNewAudit} />;
+            case 'audit': return <AuditForm userData={userData} setView={handleNavigate} auditId={selectedAuditId} notify={notify} />;
+            case 'history': return <HistoryPage userData={userData} setView={handleNavigate} onContinue={handleContinueAudit} onView={handleViewAudit} notify={notify} setLoading={setLoading} />;
+            case 'account': return <AccountPage userData={userData} setUserData={setUserData} setView={handleNavigate} notify={notify} />;
+            case 'viewAudit': return <ViewAuditPage userData={userData} setView={handleNavigate} auditId={selectedAuditId} notify={notify} setLoading={setLoading} />;
+            default: return <LoginPage setView={handleNavigate} notify={notify} setLoading={setLoading} />;
           }
         };
-
-        return (
-          <div className="min-h-screen bg-gray-100">
-            <div className="fixed bottom-4 right-4 z-50 w-full max-w-sm">
-                {notifications.map(n => (
-                    <Notification key={n.id} message={n.message} type={n.type} onClose={() => removeNotification(n.id)} />
-                ))}
-            </div>
-            {loading && !view.includes('audit') && <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"><div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div><p className="ml-4 text-white">Processando...</p></div>}
-            {renderView()}
-          </div>
-        );
+        return ( <div className="min-h-screen bg-gray-100"> <div className="fixed bottom-4 right-4 z-50 w-full max-w-sm"> {notifications.map(n => <Notification key={n.id} message={n.message} type={n.type} onClose={() => removeNotification(n.id)} />)} </div> {loading && !view.includes('audit') && <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"><div className="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div><p className="ml-4 text-white">Processando...</p></div>} {renderView()} </div> );
       }
       
       function LoginPage({ setView, notify, setLoading }) {
         const [email, setEmail] = React.useState('');
         const [password, setPassword] = React.useState('');
-
-        const handleLogin = async (e) => {
-            e.preventDefault();
-            if (!email || !password) {
-                notify("Por favor, preencha todos os campos.", "warning");
-                return;
-            }
-            setLoading(true);
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-            } catch (err) {
-                notify("Falha no login. Verifique suas credenciais.", "error");
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-50">
-                <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg">
-                    <img src="https://i.imgur.com/TN9JSD7.png" alt="Logo da PolarAUD" className="mx-auto h-52 w-auto" />
-                    <p className="text-center text-gray-500">Acesse sua conta de auditoria</p>
-                    <form onSubmit={handleLogin} className="space-y-6">
-                        <div>
-                            <label className="text-sm font-medium text-gray-600">Email</label>
-                            <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-2 mt-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="seu.email@exemplo.com" />
-                        </div>
-                        <div>
-                            <label className="text-sm font-medium text-gray-600">Senha</label>
-                            <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-2 mt-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="********" />
-                        </div>
-                        <div className="flex items-center justify-between">
-                            <button type="button" onClick={() => setView('forgotPassword')} className="text-sm text-blue-600 hover:underline">Esqueceu a senha?</button>
-                        </div>
-                        <button type="submit" className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-300">Entrar</button>
-                    </form>
-                    <p className="text-sm text-center text-gray-500">Não tem uma conta? <button onClick={() => setView('register')} className="font-medium text-blue-600 hover:underline">Registre-se</button></p>
-                </div>
-            </div>
-        );
+        const handleLogin = async (e) => { e.preventDefault(); if (!email || !password) { notify("Por favor, preencha todos os campos.", "warning"); return; } setLoading(true); try { await signInWithEmailAndPassword(auth, email, password); } catch (err) { notify("Falha no login. Verifique suas credenciais.", "error"); } finally { setLoading(false); } };
+        return ( <div className="flex items-center justify-center min-h-screen bg-gray-50"> <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg"> <img src="https://i.imgur.com/TN9JSD7.png" alt="Logo da PolarAUD" className="mx-auto h-52 w-auto" /> <p className="text-center text-gray-500">Acesse sua conta de auditoria</p> <form onSubmit={handleLogin} className="space-y-6"> <div> <label className="text-sm font-medium text-gray-600">Email</label> <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-2 mt-2 border rounded-lg" placeholder="seu.email@exemplo.com" /> </div> <div> <label className="text-sm font-medium text-gray-600">Senha</label> <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-2 mt-2 border rounded-lg" placeholder="********" /> </div> <div className="flex items-center justify-between"> <button type="button" onClick={() => setView('forgotPassword')} className="text-sm text-blue-600 hover:underline">Esqueceu a senha?</button> </div> <button type="submit" className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700">Entrar</button> </form> <p className="text-sm text-center text-gray-500">Não tem uma conta? <button onClick={() => setView('register')} className="font-medium text-blue-600 hover:underline">Registre-se</button></p> </div> </div> );
       }
 
       function ForgotPasswordPage({ setView, notify, setLoading }) {
         const [email, setEmail] = React.useState('');
-        
-        const handleResetPassword = async (e) => {
-            e.preventDefault();
-            if (!email) {
-                notify("Por favor, insira seu e-mail.", "warning");
-                return;
-            }
-            setLoading(true);
-            try {
-                await sendPasswordResetEmail(auth, email);
-                notify("E-mail de redefinição enviado! Verifique sua caixa de entrada.", "success");
-                setView('login');
-            } catch (err) {
-                notify("Falha ao enviar e-mail. Verifique se o e-mail está correto.", "error");
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-50">
-                <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg">
-                    <h1 className="text-2xl font-bold text-center text-gray-800">Redefinir Senha</h1>
-                    <p className="text-center text-gray-500">Insira seu e-mail para receber o link de redefinição.</p>
-                    <form onSubmit={handleResetPassword} className="space-y-6">
-                        <div>
-                            <label className="text-sm font-medium text-gray-600">Email</label>
-                            <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-2 mt-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="seu.email@exemplo.com" required />
-                        </div>
-                        <button type="submit" className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-300">Enviar E-mail</button>
-                    </form>
-                    <p className="text-sm text-center text-gray-500">
-                        <button onClick={() => setView('login')} className="font-medium text-blue-600 hover:underline">Voltar para o Login</button>
-                    </p>
-                </div>
-            </div>
-        );
+        const handleResetPassword = async (e) => { e.preventDefault(); if (!email) { notify("Por favor, insira seu e-mail.", "warning"); return; } setLoading(true); try { await sendPasswordResetEmail(auth, email); notify("E-mail de redefinição enviado!", "success"); setView('login'); } catch (err) { notify("Falha ao enviar e-mail.", "error"); } finally { setLoading(false); } };
+        return ( <div className="flex items-center justify-center min-h-screen bg-gray-50"> <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg"> <h1 className="text-2xl font-bold text-center">Redefinir Senha</h1> <p className="text-center text-gray-500">Insira seu e-mail para receber o link.</p> <form onSubmit={handleResetPassword} className="space-y-6"> <div> <label className="text-sm font-medium text-gray-600">Email</label> <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-2 mt-2 border rounded-lg" placeholder="seu.email@exemplo.com" required /> </div> <button type="submit" className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700">Enviar E-mail</button> </form> <p className="text-sm text-center"> <button onClick={() => setView('login')} className="font-medium text-blue-600 hover:underline">Voltar para o Login</button> </p> </div> </div> );
       }
 
       function RegisterPage({ setView, notify, setLoading }) {
         const [secret, setSecret] = React.useState('');
         const [isSecretValid, setIsSecretValid] = React.useState(false);
-        const [formData, setFormData] = React.useState({
-            username: '',
-            fullName: '',
-            email: '',
-            password: '',
-            sector: SECTORS[0]
-        });
+        const [formData, setFormData] = React.useState({ username: '', fullName: '', email: '', password: '', sector: SECTORS[0] });
         const SECRET_KEY = "@PolarAud@";
-
-        const handleSecretCheck = () => {
-            if (secret === SECRET_KEY) {
-                setIsSecretValid(true);
-            } else {
-                notify("Segredo incorreto!", "error");
-            }
-        };
-
-        const handleChange = (e) => {
-            setFormData({ ...formData, [e.target.name]: e.target.value });
-        };
-        
-        const handleRegister = async (e) => {
-            e.preventDefault();
-            setLoading(true);
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-                const user = userCredential.user;
-                
-                await setDoc(doc(db, "users", user.uid), {
-                    uid: user.uid,
-                    username: formData.username,
-                    fullName: formData.fullName,
-                    email: formData.email,
-                    sector: formData.sector,
-                    role: 'auditor'
-                });
-                notify("Usuário registrado com sucesso!", "success");
-            } catch (err) {
-                notify("Falha no registro: " + err.message, "error");
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (!isSecretValid) {
-            return (
-                <div className="flex items-center justify-center min-h-screen bg-gray-50">
-                    <div className="w-full max-w-sm p-8 space-y-4 bg-white rounded-xl shadow-lg">
-                        <h2 className="text-2xl font-bold text-center text-gray-800">Acesso ao Registro</h2>
-                        <p className="text-center text-gray-500">Insira o segredo para continuar.</p>
-                        <input type="password" value={secret} onChange={e => setSecret(e.target.value)} className="w-full px-4 py-2 mt-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Segredo de acesso" />
-                        <button onClick={handleSecretCheck} className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700">Verificar</button>
-                        <button onClick={() => setView('login')} className="w-full mt-2 text-center text-blue-600 hover:underline">Voltar para o Login</button>
-                    </div>
-                </div>
-            );
-        }
-
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-50 py-12">
-                <div className="w-full max-w-lg p-8 space-y-6 bg-white rounded-xl shadow-lg">
-                    <h1 className="text-3xl font-bold text-center text-gray-800">Registro de Novo Usuário</h1>
-                    <form onSubmit={handleRegister} className="space-y-4">
-                        <input name="username" onChange={handleChange} placeholder="Nome de usuário" className="w-full px-4 py-2 bg-gray-100 border rounded-lg" required />
-                        <input name="fullName" onChange={handleChange} placeholder="Nome Completo" className="w-full px-4 py-2 bg-gray-100 border rounded-lg" required />
-                        <input name="email" type="email" onChange={handleChange} placeholder="E-mail" className="w-full px-4 py-2 bg-gray-100 border rounded-lg" required />
-                        <input name="password" type="password" onChange={handleChange} placeholder="Senha (mínimo 6 caracteres)" className="w-full px-4 py-2 bg-gray-100 border rounded-lg" required />
-                        <select name="sector" onChange={handleChange} className="w-full px-4 py-2 bg-gray-100 border rounded-lg">
-                            {SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                        <button type="submit" className="w-full px-4 py-3 font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700">Registrar</button>
-                    </form>
-                     <button onClick={() => setView('login')} className="w-full mt-2 text-center text-blue-600 hover:underline">Já tenho uma conta</button>
-                </div>
-            </div>
-        );
+        const handleSecretCheck = () => { if (secret === SECRET_KEY) { setIsSecretValid(true); } else { notify("Segredo incorreto!", "error"); } };
+        const handleChange = (e) => { setFormData({ ...formData, [e.target.name]: e.target.value }); };
+        const handleRegister = async (e) => { e.preventDefault(); setLoading(true); try { const { user } = await createUserWithEmailAndPassword(auth, formData.email, formData.password); await setDoc(doc(db, "users", user.uid), { uid: user.uid, username: formData.username, fullName: formData.fullName, email: formData.email, sector: formData.sector, role: 'auditor' }); notify("Usuário registrado com sucesso!", "success"); } catch (err) { notify("Falha no registro: " + err.message, "error"); } finally { setLoading(false); } };
+        if (!isSecretValid) { return ( <div className="flex items-center justify-center min-h-screen bg-gray-50"> <div className="w-full max-w-sm p-8 space-y-4 bg-white rounded-xl shadow-lg"> <h2 className="text-2xl font-bold text-center">Acesso ao Registro</h2> <p className="text-center text-gray-500">Insira o segredo para continuar.</p> <input type="password" value={secret} onChange={e => setSecret(e.target.value)} className="w-full px-4 py-2 border rounded-lg" placeholder="Segredo de acesso" /> <button onClick={handleSecretCheck} className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700">Verificar</button> <button onClick={() => setView('login')} className="w-full mt-2 text-center text-blue-600 hover:underline">Voltar</button> </div> </div> ); }
+        return ( <div className="flex items-center justify-center min-h-screen bg-gray-50 py-12"> <div className="w-full max-w-lg p-8 space-y-6 bg-white rounded-xl shadow-lg"> <h1 className="text-3xl font-bold text-center">Novo Usuário</h1> <form onSubmit={handleRegister} className="space-y-4"> <input name="username" onChange={handleChange} placeholder="Nome de usuário" className="w-full px-4 py-2 border rounded-lg" required /> <input name="fullName" onChange={handleChange} placeholder="Nome Completo" className="w-full px-4 py-2 border rounded-lg" required /> <input name="email" type="email" onChange={handleChange} placeholder="E-mail" className="w-full px-4 py-2 border rounded-lg" required /> <input name="password" type="password" onChange={handleChange} placeholder="Senha (mínimo 6 caracteres)" className="w-full px-4 py-2 border rounded-lg" required /> <select name="sector" onChange={handleChange} className="w-full px-4 py-2 border rounded-lg"> {SECTORS.map(s => <option key={s} value={s}>{s}</option>)} </select> <button type="submit" className="w-full px-4 py-3 font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700">Registrar</button> </form> <button onClick={() => setView('login')} className="w-full mt-2 text-center text-blue-600 hover:underline">Já tenho uma conta</button> </div> </div> );
       }
 
       function AccountPage({ userData, setUserData, setView, notify }) {
         const [fullName, setFullName] = React.useState(userData.fullName);
         const [sector, setSector] = React.useState(userData.sector);
         const [isSaving, setIsSaving] = React.useState(false);
-
-        const handleSave = async () => {
-            setIsSaving(true);
-            try {
-                const userRef = doc(db, "users", userData.uid);
-                await updateDoc(userRef, {
-                    fullName: fullName,
-                    sector: sector
-                });
-                setUserData({ ...userData, fullName, sector });
-                notify('Dados atualizados com sucesso!', 'success');
-            } catch (error) {
-                console.error("Erro ao atualizar dados:", error);
-                notify('Falha ao atualizar dados.', 'error');
-            } finally {
-                setIsSaving(false);
-            }
-        };
-
-        return (
-            <div className="p-4 md:p-8 max-w-2xl mx-auto">
-                <header className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-bold text-gray-800">Minha Conta</h1>
-                    <button onClick={() => setView('home')} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-lg shadow-sm hover:bg-gray-50">Voltar</button>
-                </header>
-                <div className="bg-white p-8 rounded-xl shadow-lg space-y-6">
-                    <div>
-                        <label className="text-sm font-medium text-gray-600">Nome Completo</label>
-                        <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} className="w-full px-4 py-2 mt-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    </div>
-                     <div>
-                        <label className="text-sm font-medium text-gray-600">Email</label>
-                        <input type="email" value={userData.email} className="w-full px-4 py-2 mt-2 text-base text-gray-500 bg-gray-200 border rounded-lg" disabled />
-                    </div>
-                    <div>
-                        <label className="text-sm font-medium text-gray-600">Setor</label>
-                        <select value={sector} onChange={e => setSector(e.target.value)} className="w-full px-4 py-2 mt-2 text-base text-gray-700 bg-gray-100 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            {SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                    </div>
-                    <div className="flex justify-end items-center">
-                        <button onClick={handleSave} disabled={isSaving} className="px-6 py-2 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
-                            {isSaving ? 'Salvando...' : 'Salvar Alterações'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
+        const handleSave = async () => { setIsSaving(true); try { const userRef = doc(db, "users", userData.uid); await updateDoc(userRef, { fullName, sector }); setUserData({ ...userData, fullName, sector }); notify('Dados atualizados!', 'success'); } catch (error) { notify('Falha ao atualizar.', 'error'); } finally { setIsSaving(false); } };
+        return ( <div className="p-4 md:p-8 max-w-2xl mx-auto"> <header className="flex justify-between items-center mb-6"> <h1 className="text-2xl font-bold">Minha Conta</h1> <button onClick={() => setView('home')} className="px-4 py-2 text-sm bg-white rounded-lg shadow-sm hover:bg-gray-50">Voltar</button> </header> <div className="bg-white p-8 rounded-xl shadow-lg space-y-6"> <div> <label className="text-sm font-medium text-gray-600">Nome Completo</label> <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} className="w-full px-4 py-2 mt-2 border rounded-lg" /> </div> <div> <label className="text-sm font-medium text-gray-600">Email</label> <input type="email" value={userData.email} className="w-full px-4 py-2 mt-2 bg-gray-200 border rounded-lg" disabled /> </div> <div> <label className="text-sm font-medium text-gray-600">Setor</label> <select value={sector} onChange={e => setSector(e.target.value)} className="w-full px-4 py-2 mt-2 border rounded-lg"> {SECTORS.map(s => <option key={s} value={s}>{s}</option>)} </select> </div> <div className="flex justify-end"> <button onClick={handleSave} disabled={isSaving} className="px-6 py-2 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"> {isSaving ? 'Salvando...' : 'Salvar Alterações'} </button> </div> </div> </div> );
       }
       
       function HomePage({ userData, setView, handleLogout, handleNewAudit }) {
         const [showMenu, setShowMenu] = React.useState(false);
-        return (
-            <div className="p-4 md:p-8">
-                <header className="flex justify-between items-center mb-8">
-                    <img src="https://i.imgur.com/TN9JSD7.png" alt="Logo da PolarAUD" className="h-24 w-auto" />
-                    <div className="relative">
-                        <button onClick={() => setShowMenu(!showMenu)} className="flex items-center space-x-2 p-2 rounded-full bg-white shadow">
-                            <span className="font-medium text-gray-700 hidden md:block">{userData?.fullName}</span>
-                            <i className="fas fa-user-circle text-2xl text-gray-500"></i>
-                        </button>
-                        {showMenu && (
-                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20">
-                                <button onClick={() => { setView('account'); setShowMenu(false); }} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Ver/Editar Conta</button>
-                                <button onClick={handleLogout} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Sair</button>
-                            </div>
-                        )}
-                    </div>
-                </header>
-                <main className="bg-white p-6 rounded-xl shadow-lg">
-                    <h2 className="text-xl font-semibold text-gray-700">Bem-vindo(a), {userData?.fullName}!</h2>
-                    <p className="text-gray-500 mb-8">Setor: {userData?.sector}</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <button onClick={handleNewAudit} className="flex flex-col items-center justify-center p-8 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105">
-                            <i className="fas fa-plus-circle text-4xl mb-2"></i>
-                            <span className="text-lg font-semibold">Iniciar Nova Auditoria</span>
-                        </button>
-                        <button onClick={() => setView('history')} className="flex flex-col items-center justify-center p-8 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-transform transform hover:scale-105">
-                            <i className="fas fa-history text-4xl mb-2"></i>
-                            <span className="text-lg font-semibold">Histórico de Auditorias</span>
-                        </button>
-                    </div>
-                </main>
-            </div>
-        );
+        return ( <div className="p-4 md:p-8"> <header className="flex justify-between items-center mb-8"> <img src="https://i.imgur.com/TN9JSD7.png" alt="Logo" className="h-24 w-auto" /> <div className="relative"> <button onClick={() => setShowMenu(!showMenu)} className="flex items-center space-x-2 p-2 rounded-full bg-white shadow"> <span className="font-medium hidden md:block">{userData?.fullName}</span> <i className="fas fa-user-circle text-2xl text-gray-500"></i> </button> {showMenu && ( <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-20"> <button onClick={() => { setView('account'); setShowMenu(false); }} className="w-full text-left block px-4 py-2 text-sm hover:bg-gray-100">Ver/Editar Conta</button> <button onClick={handleLogout} className="w-full text-left block px-4 py-2 text-sm hover:bg-gray-100">Sair</button> </div> )} </div> </header> <main className="bg-white p-6 rounded-xl shadow-lg"> <h2 className="text-xl font-semibold">Bem-vindo(a), {userData?.fullName}!</h2> <p className="text-gray-500 mb-8">Setor: {userData?.sector}</p> <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> <button onClick={handleNewAudit} className="flex flex-col items-center justify-center p-8 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-transform transform hover:scale-105"> <i className="fas fa-plus-circle text-4xl mb-2"></i> <span className="text-lg font-semibold">Nova Auditoria</span> </button> <button onClick={() => setView('history')} className="flex flex-col items-center justify-center p-8 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-transform transform hover:scale-105"> <i className="fas fa-history text-4xl mb-2"></i> <span className="text-lg font-semibold">Histórico</span> </button> </div> </main> </div> );
       }
 
       function AuditForm({ userData, setView, auditId, notify }) {
         const [auditTitle, setAuditTitle] = React.useState('');
+        const [auditType, setAuditType] = React.useState('');
         const [entries, setEntries] = React.useState([]);
         const [isSaving, setIsSaving] = React.useState(false);
         const [loadingMessage, setLoadingMessage] = React.useState('');
@@ -574,7 +254,7 @@
             "Pode demorar um pouco...",
             "Garanta uma conexão estável durante o salvamento"
         ];
-
+        
         React.useEffect(() => {
             let interval;
             if (isSaving) {
@@ -590,71 +270,98 @@
             return () => clearInterval(interval);
         }, [isSaving]);
 
+        const userSector = userData?.sector;
+        const sectorConfig = AUDIT_CONFIG.SECTOR_CONFIG[userSector] || AUDIT_CONFIG.SECTOR_CONFIG['DEFAULT'];
+        const availableAuditTypeIds = sectorConfig.auditTypeIds;
+        const selectedAuditTypeConfig = AUDIT_CONFIG.AUDIT_TYPES[auditType]?.config;
+        
+        const AUDITED_ENTITIES_OPTIONS = selectedAuditTypeConfig ? AUDIT_CONFIG.OPTION_SETS[selectedAuditTypeConfig.auditedEntitiesId] : [];
+        const RESPONSIBLE_SECTORS_OPTIONS = selectedAuditTypeConfig ? AUDIT_CONFIG.OPTION_SETS[selectedAuditTypeConfig.responsibleSectorsId] : [];
+        const ZONES_OPTIONS = selectedAuditTypeConfig ? AUDIT_CONFIG.OPTION_SETS[selectedAuditTypeConfig.zonesId] : [];
+        const LOCATIONS_MAP = selectedAuditTypeConfig ? AUDIT_CONFIG.OPTION_SETS[selectedAuditTypeConfig.locationsMapId] : {};
+        const predefinedPointsConfig = selectedAuditTypeConfig?.predefinedPointsConfig;
+        const predefinedPointsData = predefinedPointsConfig ? AUDIT_CONFIG.OPTION_SETS[predefinedPointsConfig.collectionId] : null;
+
         const base64ToFile = (base64, filename, mimeType) => {
             const byteCharacters = atob(base64.split(',')[1]);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            const byteNumbers = new Array(byteCharacters.length).fill(0).map((_, i) => byteCharacters.charCodeAt(i));
+            return new File([new Uint8Array(byteNumbers)], filename, { type: mimeType });
+        };
+
+        const handleAuditTypeChange = (e) => {
+            const newType = e.target.value;
+            if (entries.length > 0 && newType !== auditType) {
+                 setConfirmAction({
+                    message: "Alterar o tipo de auditoria irá remover os apontamentos existentes. Deseja continuar?",
+                    color: "yellow",
+                    onConfirm: () => {
+                        setEntries([]);
+                        setAuditType(newType);
+                        setConfirmAction(null);
+                    }
+                });
+            } else {
+                setAuditType(newType);
             }
-            const byteArray = new Uint8Array(byteNumbers);
-            return new File([byteArray], filename, { type: mimeType });
         };
 
         React.useEffect(() => {
             const loadInitialData = async () => {
-                if (auditId) { // MODO CONTINUAR
+                if (auditId) {
                     setIsSaving(true);
+                    setLoadingMessage("Carregando auditoria...");
                     try {
                         const auditDoc = await getDoc(doc(db, "audits", auditId));
+                        let loadedAuditType = 'GERAL';
                         if (auditDoc.exists()) {
-                            setAuditTitle(auditDoc.data().title || '');
+                            const data = auditDoc.data();
+                            setAuditTitle(data.title || '');
+                            loadedAuditType = data.auditType || 'GERAL';
+                            setAuditType(loadedAuditType);
                         }
+                        
+                        const configForLoadedAudit = AUDIT_CONFIG.AUDIT_TYPES[loadedAuditType]?.config.predefinedPointsConfig;
+                        const dataForLoadedAudit = configForLoadedAudit ? AUDIT_CONFIG.OPTION_SETS[configForLoadedAudit.collectionId] : null;
 
-                        const entriesQuery = query(collection(db, "audits", auditId, "entries"));
-                        const entriesSnapshot = await getDocs(entriesQuery);
-                        const fetchedEntries = entriesSnapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
-                        fetchedEntries.sort((a, b) => a.entryNumber - b.entryNumber);
+                        const entriesSnapshot = await getDocs(query(collection(db, "audits", auditId, "entries")));
+                        const fetchedEntries = entriesSnapshot.docs.map(d => ({ ...d.data(), firestoreId: d.id })).sort((a, b) => a.entryNumber - b.entryNumber);
+                        
+                        setEntries(fetchedEntries.map(entry => {
+                            let descriptionSelection = entry.description;
+                            let manualDescription = '';
+                            
+                            if(configForLoadedAudit && dataForLoadedAudit){
+                                let predefinedOptions = [];
+                                if (configForLoadedAudit.type === 'byAuditedEntity') {
+                                    predefinedOptions = dataForLoadedAudit[entry.auditedEntity] || ["OUTROS"];
+                                } else if (configForLoadedAudit.type === 'simple'){
+                                    predefinedOptions = dataForLoadedAudit || [];
+                                }
+                                
+                                const isPredefined = predefinedOptions.includes(entry.description);
+                                descriptionSelection = isPredefined ? entry.description : "OUTROS";
+                                manualDescription = isPredefined ? "" : entry.description;
+                            }
 
-                        const reconstructedEntries = fetchedEntries.map(entry => ({
-                            ...entry,
-                            id: entry.firestoreId,
-                            // Bug Fix: Restore clientTimestamp from Firestore Timestamp
-                            clientTimestamp: entry.entryTimestamp?.toDate(),
-                            evidences: entry.evidenceUrls ? Object.entries(entry.evidenceUrls).map(([key, fileId]) => ({
-                                type: 'remote',
-                                key,
-                                fileId: fileId,
-                                preview: `https://drive.google.com/thumbnail?id=${fileId}&sz=s220`
-                            })) : []
+                            return {
+                                ...entry, id: entry.firestoreId, clientTimestamp: entry.entryTimestamp?.toDate(),
+                                descriptionSelection, manualDescription,
+                                evidences: entry.evidenceUrls ? Object.entries(entry.evidenceUrls).map(([key, fileId]) => ({
+                                    type: 'remote', key, fileId, preview: `https://drive.google.com/thumbnail?id=${fileId}&sz=s220`
+                                })) : []
+                            };
                         }));
-                        setEntries(reconstructedEntries);
-                    } catch (error) {
-                        notify("Erro ao carregar auditoria: " + error.message, 'error');
-                    } finally {
-                        setIsSaving(false);
-                    }
-                } else { // MODO NOVA AUDITORIA
+                    } catch (error) { notify("Erro ao carregar auditoria: " + error.message, 'error'); } 
+                    finally { setIsSaving(false); }
+                } else {
                     const draft = await loadDraft();
                     if (draft) {
-                         setAuditTitle(draft.title || '');
-                         if (draft.entries && draft.entries.length > 0) {
-                            const restoredEntries = draft.entries.map(entry => ({
-                                ...entry,
-                                // Restore Date object from string if needed
-                                clientTimestamp: entry.clientTimestamp ? new Date(entry.clientTimestamp) : new Date(),
-                                evidences: entry.evidences.map(ev => ({
-                                    ...ev, 
-                                    type: 'local',
-                                    file: base64ToFile(ev.base64, ev.file.name, ev.file.type),
-                                    preview: URL.createObjectURL(base64ToFile(ev.base64, ev.file.name, ev.file.type))
-                                }))
-                            }));
-                            setEntries(restoredEntries);
-                        } else {
-                            addEntry();
+                        setAuditTitle(draft.title || ''); setAuditType(draft.type || '');
+                        if (draft.entries?.length > 0) {
+                            setEntries(draft.entries.map(entry => ({ ...entry, clientTimestamp: new Date(entry.clientTimestamp),
+                                evidences: (entry.evidences || []).map(ev => ({ ...ev, type: 'local', file: base64ToFile(ev.base64, ev.file.name, ev.file.type), preview: URL.createObjectURL(base64ToFile(ev.base64, ev.file.name, ev.file.type)) }))
+                            })));
                         }
-                    } else {
-                        addEntry();
                     }
                 }
             };
@@ -662,334 +369,254 @@
         }, [auditId]);
         
         React.useEffect(() => {
-            if (!auditId) { // Only save drafts for new audits
-                const draftToSave = {
-                    title: auditTitle,
-                    entries: entries.map(entry => ({
-                        ...entry,
-                        // Convert Date to string for IndexedDB
-                        clientTimestamp: entry.clientTimestamp.toISOString(),
-                        evidences: entry.evidences.filter(ev => ev.type === 'local').map(ev => ({
-                            base64: ev.base64, 
-                            file: {name: ev.file.name, type: ev.file.type}
-                        }))
+            if (!auditId) {
+                saveDraft({
+                    title: auditTitle, type: auditType,
+                    entries: entries.map(entry => ({ ...entry, clientTimestamp: entry.clientTimestamp?.toISOString(),
+                        evidences: entry.evidences.filter(ev => ev.type === 'local').map(ev => ({ base64: ev.base64, file: { name: ev.file.name, type: ev.file.type } }))
                     }))
-                };
-                saveDraft(draftToSave);
+                });
             }
-        }, [entries, auditTitle, auditId]);
+        }, [entries, auditTitle, auditType, auditId]);
 
-        const addEntry = () => {
+        const addEntry = (autoAdd = false, type = auditType) => {
+             const config = AUDIT_CONFIG.AUDIT_TYPES[type]?.config;
+             if (!config) return;
+
+             const predefinedPointsConfig = config.predefinedPointsConfig;
+             const predefinedPointsData = predefinedPointsConfig ? AUDIT_CONFIG.OPTION_SETS[predefinedPointsConfig.collectionId] : null;
+
              const newEntryData = {
-                id: Date.now(),
-                entryNumber: entries.length + 1,
-                description: '',
-                complement: '',
-                responsibleSector: RESPONSIBLE_SECTORS[0],
-                evidences: [],
-                clientTimestamp: new Date() // Captura o horário no momento da criação
+                id: Date.now(), entryNumber: entries.length + 1,
+                description: '', 
+                descriptionSelection: 'OUTROS', 
+                manualDescription: '',
+                complement: '', 
+                responsibleSector: AUDIT_CONFIG.OPTION_SETS[config.responsibleSectorsId][0],
+                evidences: [], clientTimestamp: new Date()
             };
+            
+            if (predefinedPointsData) {
+                if (predefinedPointsConfig.type === 'byAuditedEntity') {
+                    const firstEntity = AUDIT_CONFIG.OPTION_SETS[config.auditedEntitiesId][0];
+                    newEntryData.descriptionSelection = (predefinedPointsData[firstEntity] || ["OUTROS"])[0];
+                } else if (predefinedPointsConfig.type === 'simple') {
+                    newEntryData.descriptionSelection = predefinedPointsData[0] || 'OUTROS';
+                }
+            }
 
             if (entries.length > 0) {
                 const lastEntry = entries[entries.length - 1];
-                newEntryData.auditedEntity = lastEntry.auditedEntity;
-                newEntryData.operationalZone = lastEntry.operationalZone;
-                newEntryData.location = lastEntry.location;
-                newEntryData.responsibleSector = lastEntry.responsibleSector; // FIX: Pre-fill responsible sector
+                Object.assign(newEntryData, { auditedEntity: lastEntry.auditedEntity, operationalZone: lastEntry.operationalZone, location: lastEntry.location, responsibleSector: lastEntry.responsibleSector });
             } else {
-                newEntryData.auditedEntity = AUDITED_ENTITIES[0];
-                newEntryData.operationalZone = Object.keys(ZONES)[0];
-                newEntryData.location = ZONES[Object.keys(ZONES)[0]][0];
+                const zones = AUDIT_CONFIG.OPTION_SETS[config.zonesId];
+                const locations = AUDIT_CONFIG.OPTION_SETS[config.locationsMapId];
+                const firstZone = zones[0];
+                Object.assign(newEntryData, { 
+                    auditedEntity: AUDIT_CONFIG.OPTION_SETS[config.auditedEntitiesId][0], 
+                    operationalZone: firstZone, 
+                    location: locations[firstZone] ? locations[firstZone][0] : '' 
+                });
             }
-            setEntries([...entries, newEntryData]);
+            setEntries(prevEntries => [...prevEntries, newEntryData]);
         };
 
-        const removeEntry = (indexToRemove) => {
-            setConfirmAction({
-                message: "Tem certeza que deseja apagar este apontamento?",
-                color: "red",
-                onConfirm: () => {
-                    const newEntries = entries.filter((_, index) => index !== indexToRemove);
-                    const renumberedEntries = newEntries.map((entry, index) => ({
-                        ...entry,
-                        entryNumber: index + 1
-                    }));
-                    setEntries(renumberedEntries);
-                    setConfirmAction(null);
-                }
-            });
-        };
-
+        const removeEntry = (index) => setConfirmAction({ message: "Tem certeza que deseja remover este apontamento?", color: "red", onConfirm: () => { setEntries(entries.filter((_, i) => i !== index).map((e, i) => ({ ...e, entryNumber: i + 1 }))); setConfirmAction(null); } });
+        
         const updateEntry = (index, field, value) => {
             const newEntries = [...entries];
-            newEntries[index][field] = value;
-            if (field === 'operationalZone') {
-                newEntries[index]['location'] = ZONES[value][0];
+            const entry = newEntries[index];
+            entry[field] = value;
+
+            if (field === 'auditedEntity' && predefinedPointsConfig?.type === 'byAuditedEntity') {
+                const newOptions = predefinedPointsData[value] || ["OUTROS"];
+                entry.descriptionSelection = newOptions[0];
+                entry.manualDescription = '';
+            }
+            if (field === 'operationalZone') { 
+                entry.location = LOCATIONS_MAP[value] ? LOCATIONS_MAP[value][0] : ''; 
+            }
+            if (field === 'descriptionSelection' && value !== 'OUTROS') {
+                entry.manualDescription = '';
             }
             setEntries(newEntries);
         };
 
-        const handleTitleChange = (e) => {
-            const value = e.target.value;
-            // Regex to capitalize the first letter of each word
-            const formattedTitle = value.replace(/\b\w/g, char => char.toUpperCase());
-            setAuditTitle(formattedTitle);
-        };
+        const handleTitleChange = (e) => setAuditTitle(e.target.value.replace(/\b\w/g, c => c.toUpperCase()));
 
         const handleImageChange = async (index, event) => {
             const files = Array.from(event.target.files);
-            if (files.length === 0) return;
-
-            const currentEvidences = entries[index].evidences;
-            if (currentEvidences.length + files.length > 3) {
-                notify("Você pode adicionar no máximo 3 evidências.", "warning");
-                return;
-            }
-
-            const options = {
-                maxSizeMB: 0.8,
-                maxWidthOrHeight: 1024,
-                useWebWorker: true
-            };
-
+            if (!files.length || (entries[index].evidences.length + files.length > 3)) { if (files.length) notify("Máximo de 3 evidências.", "warning"); return; }
+            const options = { maxSizeMB: 0.8, maxWidthOrHeight: 1024, useWebWorker: true };
             for (const file of files) {
                 try {
                     const compressedFile = await imageCompression(file, options);
-                    const reader = new FileReader();
-                    reader.readAsDataURL(compressedFile);
-                    reader.onloadend = () => {
-                        const base64String = reader.result;
-                        const newEvidence = {
-                            type: 'local',
-                            file: compressedFile,
-                            base64: base64String,
-                            preview: URL.createObjectURL(compressedFile)
-                        };
-                        
-                        const newEntries = [...entries];
-                        newEntries[index].evidences.push(newEvidence);
-                        setEntries(newEntries);
-                    };
-                } catch (error) {
-                    console.error("Erro na compressão:", error);
-                    notify("Falha ao processar a imagem.", "error");
-                }
+                    const reader = new FileReader(); reader.readAsDataURL(compressedFile);
+                    reader.onloadend = () => { const newEntries = [...entries]; newEntries[index].evidences.push({ type: 'local', file: compressedFile, base64: reader.result, preview: URL.createObjectURL(compressedFile) }); setEntries(newEntries); };
+                } catch (error) { notify("Falha ao processar imagem.", "error"); }
             }
         };
-
+        
         const removeEvidence = (entryIndex, evidenceIndex) => {
             const newEntries = [...entries];
-            const evidenceToRemove = newEntries[entryIndex].evidences[evidenceIndex];
-            if (evidenceToRemove.type === 'local') {
-                URL.revokeObjectURL(evidenceToRemove.preview);
-            }
+            const ev = newEntries[entryIndex].evidences[evidenceIndex];
+            if (ev.type === 'local') URL.revokeObjectURL(ev.preview);
             newEntries[entryIndex].evidences.splice(evidenceIndex, 1);
             setEntries(newEntries);
         };
         
-        const getTimestampString = () => {
-            const d = new Date();
-            const pad = (n) => n.toString().padStart(2, '0');
-            return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-        };
+        const getTimestampString = () => new Date().toISOString().replace(/[-:.]/g, '').replace('T', '_').slice(0, 15);
 
         const saveAudit = async () => {
-            if (!auditTitle.trim()) {
-                 notify("Por favor, insira um título para a auditoria.", "warning");
-                 return;
-            }
-            if (entries.length === 0 || entries.some(e => !e.description || !e.responsibleSector)) {
-                notify("A auditoria precisa ter pelo menos um apontamento com descrição e setor responsável.", "warning");
-                return;
+            if (!auditTitle.trim() || !auditType) { notify("Preencha o Título e o Tipo de Auditoria.", "warning"); return; }
+            for (const entry of entries) {
+                 const finalDescription = predefinedPointsConfig ? (entry.descriptionSelection === 'OUTROS' ? entry.manualDescription : entry.descriptionSelection) : entry.description;
+                if (!finalDescription || !entry.responsibleSector) { notify("Cada apontamento deve ter descrição e setor responsável.", "warning"); return; }
             }
             setIsSaving(true);
-
             try {
-                // 1. Processar todas as imagens primeiro
-                const allEvidencePromises = entries.map(async (entry, index) => {
-                    const localImagesToUpload = entry.evidences.filter(ev => ev.type === 'local');
-                    const remoteImagesToKeep = entry.evidences.filter(ev => ev.type === 'remote');
-                    
-                    const finalEvidenceUrls = {};
-                    remoteImagesToKeep.forEach(ev => {
-                        finalEvidenceUrls[ev.key] = ev.fileId;
-                    });
-
-                    if (localImagesToUpload.length > 0) {
-                        const imagePayload = localImagesToUpload.map((ev, localIndex) => {
-                            const timestamp = getTimestampString();
-                            const safeEntity = entry.auditedEntity.replace(/[^a-zA-Z0-9]/g, '');
-                            const safeZone = entry.operationalZone.replace(/[^a-zA-Z0-9]/g, '');
-                            const evidenceNumber = remoteImagesToKeep.length + localIndex + 1;
-                            const fileName = `AUD_${safeEntity}_${safeZone}_AP${entry.entryNumber}_EV${evidenceNumber}_${timestamp}`;
-                            return { base64: ev.base64.split(',')[1], mimeType: ev.file.type, fileName: fileName };
-                        });
-
-                        const response = await fetch(IMAGE_API_URL, {
-                            method: 'POST',
-                            headers: {'Content-Type': 'text/plain;charset=utf-8'},
-                            body: JSON.stringify({ images: imagePayload }),
-                        });
-
-                        if (!response.ok) throw new Error(`API de imagens retornou: ${response.statusText}`);
-                        const result = await response.json();
-                        if (result.status !== 'success') throw new Error(`API de imagens falhou: ${result.message} ${result.stack || ''}`);
-                        
-                        result.files.forEach(fileInfo => {
-                            finalEvidenceUrls[fileInfo.key] = fileInfo.id;
-                        });
+                const entriesWithUrls = await Promise.all(entries.map(async entry => {
+                    const localImages = entry.evidences.filter(ev => ev.type === 'local');
+                    const remoteImages = entry.evidences.filter(ev => ev.type === 'remote');
+                    const finalUrls = Object.fromEntries(remoteImages.map(ev => [ev.key, ev.fileId]));
+                    if (localImages.length > 0) {
+                        const payload = localImages.map((ev, i) => ({ base64: ev.base64.split(',')[1], mimeType: ev.file.type, fileName: `AUD_${entry.auditedEntity.replace(/[^a-zA-Z0-9]/g, '')}_AP${entry.entryNumber}_EV${remoteImages.length+i+1}_${getTimestampString()}` }));
+                        const res = await fetch(IMAGE_API_URL, { method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify({ images: payload }) });
+                        if (!res.ok) throw new Error(`API: ${res.statusText}`);
+                        const result = await res.json();
+                        if (result.status !== 'success') throw new Error(`API: ${result.message}`);
+                        result.files.forEach(f => { finalUrls[f.key] = f.id; });
                     }
-                    return { ...entry, evidenceUrls: finalEvidenceUrls };
-                });
-
-                const entriesWithUrls = await Promise.all(allEvidencePromises);
-
-                // 2. Agora, fazer a transação no Firestore
+                    return { ...entry, evidenceUrls: finalUrls };
+                }));
                 const batch = writeBatch(db);
                 let currentAuditId = auditId;
-
-                const firstEntry = entries[0];
-                const auditData = {
-                    userId: userData.uid,
-                    userFullName: userData.fullName,
-                    title: auditTitle,
-                    status: "pending",
-                    firstEntrySummary: {
-                        auditedEntity: firstEntry.auditedEntity,
-                        operationalZone: firstEntry.operationalZone
-                    },
-                    entryCount: entries.length
-                };
-
-                if (!currentAuditId) {
-                    const auditRef = doc(collection(db, "audits"));
-                    currentAuditId = auditRef.id;
-                    // Bug Fix: Only set createdAt on initial creation
-                    auditData.createdAt = serverTimestamp();
-                    batch.set(auditRef, auditData);
-                } else {
-                    const auditRef = doc(db, "audits", currentAuditId);
-                    // On update, we don't include createdAt, so it's not overwritten
-                    batch.update(auditRef, auditData);
-
-                    const oldEntriesSnapshot = await getDocs(collection(db, "audits", currentAuditId, "entries"));
-                    oldEntriesSnapshot.forEach(doc => batch.delete(doc.ref));
-                }
-
-                entriesWithUrls.forEach((entry, index) => {
-                    const entryRef = doc(collection(db, "audits", currentAuditId, "entries"));
-                    const { evidences, id, clientTimestamp, ...entryToSave } = entry;
-                    batch.set(entryRef, {
-                        ...entryToSave,
-                        userId: userData.uid, // Required for Firestore rules
-                        technicalSector: userData.sector,
-                        entryTimestamp: clientTimestamp // Usa o horário capturado no cliente
-                    });
+                const auditData = { userId: userData.uid, userFullName: userData.fullName, title: auditTitle, auditType, status: "pending", entryCount: entries.length, firstEntrySummary: entries.length > 0 ? { auditedEntity: entries[0].auditedEntity, operationalZone: entries[0].operationalZone } : {} };
+                if (!currentAuditId) { const ref = doc(collection(db, "audits")); currentAuditId = ref.id; auditData.createdAt = serverTimestamp(); batch.set(ref, auditData); } else { batch.update(doc(db, "audits", currentAuditId), auditData); const old = await getDocs(collection(db, "audits", currentAuditId, "entries")); old.forEach(d => batch.delete(d.ref)); }
+                
+                entriesWithUrls.forEach(entry => {
+                    const { evidences, id, clientTimestamp, descriptionSelection, manualDescription, ...baseEntry } = entry;
+                    const finalDescription = predefinedPointsConfig ? (descriptionSelection === 'OUTROS' ? manualDescription : descriptionSelection) : baseEntry.description;
+                    batch.set(doc(collection(db, "audits", currentAuditId, "entries")), { ...baseEntry, description: finalDescription, evidenceUrls: entry.evidenceUrls, userId: userData.uid, technicalSector: userData.sector, entryTimestamp: clientTimestamp });
                 });
                 
-                await batch.commit();
-                await clearDraft();
-                notify("Auditoria salva com sucesso!", "success");
-                setView('home');
-
-            } catch (error) {
-                console.error("Erro ao salvar auditoria:", error);
-                notify("Ocorreu um erro grave ao salvar. Detalhes: " + error.message, "error");
-            } finally {
-                setIsSaving(false);
-            }
+                await batch.commit(); await clearDraft(); notify("Auditoria salva!", "success"); setView('home');
+            } catch (error) { notify("Erro grave ao salvar: " + error.message, "error");
+            } finally { setIsSaving(false); }
         };
 
         return (
             <>
-            {isSaving && (
-                <div className="fixed inset-0 bg-black bg-opacity-75 flex flex-col justify-center items-center z-50">
-                    <div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32 mb-4"></div>
-                    <p className="text-white text-xl">{loadingMessage}</p>
-                </div>
-            )}
+            {isSaving && <div className="fixed inset-0 bg-black bg-opacity-75 flex flex-col justify-center items-center z-50"><div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32 mb-4"></div><p className="text-white text-xl">{loadingMessage}</p></div>}
             <ConfirmationModal action={confirmAction} onCancel={() => setConfirmAction(null)} />
             <div className={`p-4 md:p-8 max-w-4xl mx-auto ${isSaving ? 'pointer-events-none' : ''}`}>
                 <header className="flex justify-between items-center mb-6">
-                    <h1 className="text-2xl font-bold text-gray-800">{auditId ? 'Continuar Auditoria' : 'Nova Auditoria'}</h1>
-                    <button onClick={() => setView('home')} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-lg shadow-sm hover:bg-gray-50">Voltar</button>
+                    <h1 className="text-2xl font-bold">{auditId ? 'Continuar Auditoria' : 'Nova Auditoria'}</h1>
+                    <button onClick={() => setView('home')} className="px-4 py-2 text-sm bg-white rounded-lg shadow-sm hover:bg-gray-50">Voltar</button>
                 </header>
                 
-                <div className="bg-white p-6 rounded-xl shadow-lg mb-6">
-                    <label htmlFor="auditTitle" className="block text-sm font-medium text-gray-700 mb-1">Título da Auditoria</label>
-                    <input 
-                        id="auditTitle"
-                        type="text"
-                        value={auditTitle}
-                        onChange={handleTitleChange}
-                        placeholder="Ex: Auditoria Semanal de Segurança"
-                        className="w-full p-2 bg-gray-50 border rounded-md"
-                        required
-                    />
+                <div className="bg-white p-6 rounded-xl shadow-lg mb-6 space-y-4">
+                    <div>
+                        <label htmlFor="auditTitle" className="block text-sm font-medium mb-1">Título da Auditoria</label>
+                        <input id="auditTitle" type="text" value={auditTitle} onChange={handleTitleChange} placeholder="Ex: Auditoria Semanal de Segurança" className="w-full p-2 bg-gray-50 border rounded-md" required />
+                    </div>
+                    <div>
+                        <label htmlFor="auditType" className="block text-sm font-medium mb-1">Tipo de Auditoria</label>
+                        <select id="auditType" value={auditType} onChange={handleAuditTypeChange} className="w-full p-2 bg-gray-50 border rounded-md" required>
+                            <option value="" disabled>-- Selecione um tipo --</option>
+                            {availableAuditTypeIds.map(typeId => <option key={typeId} value={typeId}>{AUDIT_CONFIG.AUDIT_TYPES[typeId].name}</option>)}
+                        </select>
+                    </div>
                 </div>
 
-                <div className="space-y-6">
-                    {entries.map((entry, index) => (
-                        <div key={entry.id || index} className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500 relative">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-lg font-semibold text-gray-700">Apontamento #{entry.entryNumber}</h3>
-                                <button onClick={() => removeEntry(index)} className="text-red-500 hover:text-red-700">
-                                    <i className="fas fa-trash-alt"></i>
-                                </button>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label htmlFor={`auditedEntity-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Órgão Anuente Auditado</label>
-                                    <select id={`auditedEntity-${index}`} value={entry.auditedEntity} onChange={e => updateEntry(index, 'auditedEntity', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
-                                        {AUDITED_ENTITIES.map(e => <option key={e} value={e}>{e}</option>)}
-                                    </select>
+                <div className={`transition-opacity duration-500 ${!auditType ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+                    {!auditType && <div className="text-center p-4 bg-yellow-100 text-yellow-800 rounded-lg mb-6">Selecione um Tipo de Auditoria para continuar.</div>}
+                    <div className="space-y-6">
+                        {entries.map((entry, index) => {
+                             let predefinedOptions = [];
+                             if (predefinedPointsConfig && predefinedPointsData) {
+                                 if (predefinedPointsConfig.type === 'byAuditedEntity') {
+                                     predefinedOptions = predefinedPointsData[entry.auditedEntity] || ["OUTROS"];
+                                 } else if (predefinedPointsConfig.type === 'simple') {
+                                     predefinedOptions = predefinedPointsData || [];
+                                 }
+                             }
+                            
+                            return (
+                            <div key={entry.id || index} className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-blue-500">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-lg font-semibold">Apontamento #{entry.entryNumber}</h3>
+                                    <button onClick={() => removeEntry(index)} className="text-red-500 hover:text-red-700"><i className="fas fa-trash-alt"></i></button>
                                 </div>
-                                <div>
-                                    <label htmlFor={`responsibleSector-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Setor Responsável</label>
-                                    <select id={`responsibleSector-${index}`} value={entry.responsibleSector} onChange={e => updateEntry(index, 'responsibleSector', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md" required>
-                                        {RESPONSIBLE_SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label htmlFor={`operationalZone-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Zona Operacional</label>
-                                    <select id={`operationalZone-${index}`} value={entry.operationalZone} onChange={e => updateEntry(index, 'operationalZone', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
-                                        {Object.keys(ZONES).map(z => <option key={z} value={z}>{z}</option>)}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label htmlFor={`location-${index}`} className="block text-sm font-medium text-gray-700 mb-1">Local</label>
-                                    <select id={`location-${index}`} value={entry.location} onChange={e => updateEntry(index, 'location', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
-                                        {ZONES[entry.operationalZone].map(l => <option key={l} value={l}>{l}</option>)}
-                                    </select>
-                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Órgão Anuente</label>
+                                        <select value={entry.auditedEntity} onChange={e => updateEntry(index, 'auditedEntity', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
+                                            {AUDITED_ENTITIES_OPTIONS.map(e => <option key={e} value={e}>{e}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Setor Responsável</label>
+                                        <select value={entry.responsibleSector} onChange={e => updateEntry(index, 'responsibleSector', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md" required>
+                                            {RESPONSIBLE_SECTORS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Zona Operacional</label>
+                                        <select value={entry.operationalZone} onChange={e => updateEntry(index, 'operationalZone', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
+                                            {ZONES_OPTIONS.map(z => <option key={z} value={z}>{z}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Local</label>
+                                        <select value={entry.location} onChange={e => updateEntry(index, 'location', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
+                                            {entry.operationalZone && LOCATIONS_MAP[entry.operationalZone] ? LOCATIONS_MAP[entry.operationalZone].map(l => <option key={l} value={l}>{l}</option>) : <option>Selecione Zona</option>}
+                                        </select>
+                                    </div>
 
-                                <textarea value={entry.description} onChange={e => updateEntry(index, 'description', e.target.value)} placeholder="APONTAMENTO (EM MAIÚSCULAS)" className="w-full p-2 bg-gray-50 border rounded-md md:col-span-2 h-24 uppercase" required></textarea>
-                                <textarea value={entry.complement} onChange={e => updateEntry(index, 'complement', e.target.value)} placeholder="Complemento (opcional)" className="w-full p-2 bg-gray-50 border rounded-md md:col-span-2 h-20"></textarea>
-                                
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Evidências (até 3 imagens)</label>
-                                    <input type="file" accept="image/*" multiple onChange={(e) => handleImageChange(index, e)} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
-                                    <div className="mt-4 flex flex-wrap gap-4">
-                                        {entry.evidences.map((ev, evIndex) => (
-                                            <div key={ev.preview || evIndex} className="relative">
-                                                <img src={ev.preview} className="w-24 h-24 object-cover rounded-lg shadow" />
-                                                <button onClick={() => removeEvidence(index, evIndex)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">&times;</button>
+                                    <div className="md:col-span-2 space-y-2">
+                                        <div className="font-medium text-sm">Apontamento</div>
+                                        {predefinedPointsConfig ? (
+                                            <div>
+                                                <select value={entry.descriptionSelection} onChange={e => updateEntry(index, 'descriptionSelection', e.target.value)} className="w-full p-2 bg-gray-50 border rounded-md">
+                                                    {predefinedOptions.map(desc => <option key={desc} value={desc}>{desc}</option>)}
+                                                </select>
+                                                {entry.descriptionSelection === 'OUTROS' && (
+                                                    <textarea value={entry.manualDescription} onChange={e => updateEntry(index, 'manualDescription', e.target.value)} placeholder="Descreva o apontamento (EM MAIÚSCULAS)" className="w-full p-2 bg-gray-50 border rounded-md h-24 uppercase mt-2" required />
+                                                )}
                                             </div>
-                                        ))}
+                                        ) : (
+                                             <textarea value={entry.description} onChange={e => updateEntry(index, 'description', e.target.value)} placeholder="APONTAMENTO (EM MAIÚSCULAS)" className="w-full p-2 bg-gray-50 border rounded-md h-24 uppercase" required></textarea>
+                                        )}
+                                    </div>
+                                    
+                                    <textarea value={entry.complement} onChange={e => updateEntry(index, 'complement', e.target.value)} placeholder="Complemento (opcional)" className="w-full p-2 bg-gray-50 border rounded-md md:col-span-2 h-20"></textarea>
+                                    
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium mb-2">Evidências (até 3)</label>
+                                        <input type="file" accept="image/*" multiple onChange={(e) => handleImageChange(index, e)} className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                                        <div className="mt-4 flex flex-wrap gap-4">
+                                            {(entry.evidences || []).map((ev, evIndex) => (
+                                                <div key={ev.preview || evIndex} className="relative">
+                                                    <img src={ev.preview} className="w-24 h-24 object-cover rounded-lg shadow" />
+                                                    <button onClick={() => removeEvidence(index, evIndex)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">&times;</button>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
+                        )})}
+                    </div>
 
-                <div className="mt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <button onClick={addEntry} className="w-full md:w-auto px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors">
-                        <i className="fas fa-plus mr-2"></i> Adicionar Novo Apontamento
-                    </button>
-                    <button onClick={saveAudit} disabled={isSaving} className="w-full md:w-auto px-8 py-4 bg-blue-700 text-white font-bold rounded-lg hover:bg-blue-800 disabled:bg-gray-400 transition-colors text-lg">
-                        {isSaving ? 'Salvando...' : 'Salvar Auditoria Completa'}
-                    </button>
+                    <div className="mt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <button onClick={() => addEntry()} disabled={!auditType || isSaving} className="w-full md:w-auto px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                            <i className="fas fa-plus mr-2"></i> Adicionar Apontamento
+                        </button>
+                        <button onClick={saveAudit} disabled={!auditType || isSaving || entries.length === 0} className="w-full md:w-auto px-8 py-4 bg-blue-700 text-white font-bold rounded-lg hover:bg-blue-800 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                            {isSaving ? 'Salvando...' : 'Salvar Auditoria'}
+                        </button>
+                    </div>
                 </div>
             </div>
             </>
@@ -1009,213 +636,76 @@
 
         const formatTimestamp = (timestamp) => {
             if (!timestamp) return null;
-            // Can be a Firestore Timestamp or a JS Date object
             const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
-            return date.toLocaleString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
+            return date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
         };
 
         const fetchAudits = async () => {
-            if (!userData) {
-                setLoadingData(false);
-                return;
-            }
-            setLoadingData(true);
-            setError(null);
+            if (!userData) { setLoadingData(false); return; }
+            setLoadingData(true); setError(null);
             try {
-                const q = userData.role === 'admin' 
-                    ? query(collection(db, "audits"))
-                    : query(collection(db, "audits"), where("userId", "==", userData.uid));
-                
+                const q = userData.role === 'admin' ? collection(db, "audits") : query(collection(db, "audits"), where("userId", "==", userData.uid));
                 const querySnapshot = await getDocs(q);
-                const auditsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                auditsData.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-                
+                const auditsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 setAudits(auditsData);
-            } catch (err) {
-                console.error("Erro ao buscar auditorias:", err);
-                setError("Não foi possível carregar o histórico. Tente novamente mais tarde.");
-            } finally {
-                setLoadingData(false);
-            }
+            } catch (err) { setError("Não foi possível carregar o histórico.");
+            } finally { setLoadingData(false); }
         };
 
-        React.useEffect(() => {
-            fetchAudits();
-        }, [userData]);
+        React.useEffect(() => { fetchAudits(); }, [userData]);
         
-        const handleStatusChange = async (auditId, newStatus) => {
-            setConfirmAction({
-                message: "Tem certeza que deseja concluir essa auditoria?",
-                color: 'green',
-                onConfirm: async () => {
-                    const auditRef = doc(db, "audits", auditId);
-                    // Bug Fix: Only update status and completedAt, never createdAt
-                    await updateDoc(auditRef, { 
-                        status: newStatus,
-                        completedAt: serverTimestamp()
-                    });
-                    fetchAudits();
-                    setConfirmAction(null);
-                    notify("Status da auditoria alterado com sucesso!", "success");
-                }
-            });
-        };
-
-        const handleDeleteAudit = async (auditId) => {
-            setConfirmAction({
-                message: "Tem certeza que deseja apagar esta auditoria permanentemente? Esta ação não pode ser desfeita.",
-                color: 'red',
-                onConfirm: async () => {
-                    setLoading(true);
-                    setConfirmAction(null);
-                    try {
-                        const entriesRef = collection(db, "audits", auditId, "entries");
-                        const entriesSnapshot = await getDocs(entriesRef);
-                        
-                        const batch = writeBatch(db);
-                        
-                        entriesSnapshot.forEach(doc => {
-                            batch.delete(doc.ref);
-                        });
-                        
-                        batch.delete(doc(db, "audits", auditId));
-                        
-                        await batch.commit();
-
-                        notify("Auditoria apagada com sucesso!", "success");
-                        fetchAudits();
-                    } catch (err) {
-                        console.error("Erro ao apagar auditoria:", err);
-                        notify("Falha ao apagar a auditoria. Verifique as permissões e tente novamente.", "error");
-                    } finally {
-                        setLoading(false);
-                    }
-                }
-            });
-        };
-        
-        const handleExportClick = () => {
-            setShowExportModal(true);
-        };
-
-        const handleAuditSelectionChange = (auditId) => {
-            setSelectedAuditIds(prev => 
-                prev.includes(auditId) ? prev.filter(id => id !== auditId) : [...prev, auditId]
-            );
-        };
-
-        const handleFinalExport = () => {
-             if (selectedAuditIds.length === 0) {
-                notify("Nenhuma auditoria selecionada para exportar.", "warning");
-                return;
-            }
-            exportToCSV(selectedAuditIds);
-            setShowExportModal(false);
-            setSelectedAuditIds([]);
-        };
+        const handleStatusChange = (auditId, newStatus) => setConfirmAction({ message: "Concluir auditoria?", color: 'green', onConfirm: async () => { await updateDoc(doc(db, "audits", auditId), { status: newStatus, completedAt: serverTimestamp() }); fetchAudits(); setConfirmAction(null); notify("Status alterado!", "success"); } });
+        const handleDeleteAudit = (auditId) => setConfirmAction({ message: "Apagar permanentemente?", color: 'red', onConfirm: async () => { setLoading(true); setConfirmAction(null); try { const entriesRef = collection(db, "audits", auditId, "entries"); const entriesSnap = await getDocs(entriesRef); const batch = writeBatch(db); entriesSnap.forEach(d => batch.delete(d.ref)); batch.delete(doc(db, "audits", auditId)); await batch.commit(); notify("Auditoria apagada!", "success"); fetchAudits(); } catch (err) { notify("Falha ao apagar.", "error"); } finally { setLoading(false); } } });
+        const handleExportClick = () => setShowExportModal(true);
+        const handleAuditSelectionChange = (auditId) => setSelectedAuditIds(prev => prev.includes(auditId) ? prev.filter(id => id !== auditId) : [...prev, auditId]);
+        const handleFinalExport = () => { if (selectedAuditIds.length === 0) { notify("Nenhuma auditoria selecionada.", "warning"); return; } exportToCSV(selectedAuditIds); setShowExportModal(false); setSelectedAuditIds([]); };
 
         const exportToCSV = async (auditIdsToExport) => {
             setLoading(true);
             let entriesToExport = [];
             let fileName = 'relatorio_polaraud.csv';
-            
-            if (!auditIdsToExport || auditIdsToExport.length === 0) {
-                notify("Nenhuma auditoria para exportar.", "warning");
-                setLoading(false);
-                return;
-            }
-
-            if (auditIdsToExport.length === 1) {
-                fileName = `auditoria_${auditIdsToExport[0]}.csv`;
-            } else {
-                fileName = `auditorias_selecionadas.csv`;
-            }
+            if (!auditIdsToExport || auditIdsToExport.length === 0) { setLoading(false); return; }
+            fileName = auditIdsToExport.length === 1 ? `auditoria_${auditIdsToExport[0]}.csv` : `auditorias_selecionadas.csv`;
 
             try {
-                const auditsToProcessQuery = query(collection(db, "audits"), where("__name__", "in", auditIdsToExport));
-                const auditsSnapshot = await getDocs(auditsToProcessQuery);
+                const q = query(collection(db, "audits"), where("__name__", "in", auditIdsToExport));
+                const auditsSnapshot = await getDocs(q);
                 const auditsToProcess = auditsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
                 for (const audit of auditsToProcess) {
                     const entriesSnapshot = await getDocs(collection(db, "audits", audit.id, "entries"));
-                    entriesSnapshot.forEach(entryDoc => {
-                        entriesToExport.push({ 
-                            ...entryDoc.data(), 
-                            userFullName: audit.userFullName,
-                            auditTitle: audit.title
-                        });
-                    });
+                    entriesSnapshot.forEach(entryDoc => entriesToExport.push({ ...entryDoc.data(), userFullName: audit.userFullName, auditTitle: audit.title }));
                 }
 
-                if (entriesToExport.length === 0) {
-                    notify("Nenhum apontamento encontrado para exportar.", "warning");
-                    setLoading(false);
-                    return;
-                }
+                if (entriesToExport.length === 0) { notify("Nenhum apontamento para exportar.", "warning"); setLoading(false); return; }
 
                 const headers = "Titulo_Auditoria,Numero_Apontamento,Auditor,Data_Hora_Apontamento,Zona_Operacional,Setor_Tecnico,Setor_Responsavel,Orgao_Anuente_Auditado,Local,Descricao_Apontamento,Complemento,Evidencia_1,Evidencia_2,Evidencia_3";
-                const csvRows = [headers];
-
-                entriesToExport.sort((a, b) => a.entryNumber - b.entryNumber).forEach(entry => {
+                const csvRows = [headers, ...entriesToExport.sort((a, b) => a.entryNumber - b.entryNumber).map(entry => {
                     const evidenceUrls = Object.values(entry.evidenceUrls || {});
-                    const row = [
-                        `"${entry.auditTitle || ''}"`,
-                        entry.entryNumber,
-                        `"${entry.userFullName || ''}"`,
-                        `"${formatTimestamp(entry.entryTimestamp) || 'N/A'}"`,
-                        `"${entry.operationalZone || ''}"`,
-                        `"${entry.technicalSector || ''}"`,
-                        `"${entry.responsibleSector || ''}"`,
-                        `"${entry.auditedEntity || ''}"`,
-                        `"${entry.location || ''}"`,
-                        `"${(entry.description || '').replace(/"/g, '""')}"`,
-                        `"${(entry.complement || '').replace(/"/g, '""')}"`,
-                        // New image URL format
-                        evidenceUrls[0] ? `https://drive.google.com/uc?id=${evidenceUrls[0]}` : '',
-                        evidenceUrls[1] ? `https://drive.google.com/uc?id=${evidenceUrls[1]}` : '',
-                        evidenceUrls[2] ? `https://drive.google.com/uc?id=${evidenceUrls[2]}` : '',
-                    ];
-                    csvRows.push(row.join(','));
-                });
+                    return [`"${entry.auditTitle || ''}"`, entry.entryNumber, `"${entry.userFullName || ''}"`, `"${formatTimestamp(entry.entryTimestamp) || 'N/A'}"`, `"${entry.operationalZone || ''}"`, `"${entry.technicalSector || ''}"`, `"${entry.responsibleSector || ''}"`, `"${entry.auditedEntity || ''}"`, `"${entry.location || ''}"`, `"${(entry.description || '').replace(/"/g, '""')}"`, `"${(entry.complement || '').replace(/"/g, '""')}"`, evidenceUrls[0] ? `https://drive.google.com/uc?id=${evidenceUrls[0]}` : '', evidenceUrls[1] ? `https://drive.google.com/uc?id=${evidenceUrls[1]}` : '', evidenceUrls[2] ? `https://drive.google.com/uc?id=${evidenceUrls[2]}` : ''].join(',');
+                })];
 
                 const csvString = csvRows.join('\n');
                 const blob = new Blob([`\uFEFF${csvString}`], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement("a");
-                const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", fileName);
+                link.href = URL.createObjectURL(blob);
+                link.download = fileName;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-            } catch(err) {
-                 console.error("Erro ao exportar CSV:", err);
-                 notify("Falha ao exportar CSV.", "error");
-            } finally {
-                setLoading(false);
-            }
+            } catch(err) { notify("Falha ao exportar CSV.", "error"); } 
+            finally { setLoading(false); }
         };
 
         const filteredAudits = audits.filter(audit => {
             const auditDate = audit.createdAt?.seconds ? new Date(audit.createdAt.seconds * 1000) : null;
             const start = startDate ? new Date(startDate) : null;
-            const end = endDate ? new Date(endDate) : null;
-            
             if(start) start.setHours(0,0,0,0);
+            const end = endDate ? new Date(endDate) : null;
             if(end) end.setHours(23,59,59,999);
-
             const dateMatch = (!start || (auditDate && auditDate >= start)) && (!end || (auditDate && auditDate <= end));
-            
             const filterText = filter.toLowerCase();
-            const textMatch = (audit.title && audit.title.toLowerCase().includes(filterText)) ||
-                              (audit.userFullName && audit.userFullName.toLowerCase().includes(filterText)) ||
-                              (audit.id && audit.id.toLowerCase().includes(filterText));
-
+            const textMatch = (audit.title?.toLowerCase().includes(filterText)) || (audit.userFullName?.toLowerCase().includes(filterText)) || (audit.id?.toLowerCase().includes(filterText));
             return dateMatch && textMatch;
         });
 
@@ -1223,12 +713,10 @@
             <div className="p-4 md:p-8 max-w-7xl mx-auto">
                 <ConfirmationModal action={confirmAction} onCancel={() => setConfirmAction(null)} />
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-                    <h1 className="text-2xl font-bold text-gray-800">Histórico de Auditorias</h1>
+                    <h1 className="text-2xl font-bold">Histórico de Auditorias</h1>
                     <div className="flex gap-4">
-                        <button onClick={() => setView('home')} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-lg shadow-sm hover:bg-gray-50">Voltar</button>
-                        <button onClick={handleExportClick} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg shadow-sm hover:bg-green-700">
-                            <i className="fas fa-file-csv mr-2"></i> Exportação Personalizada
-                        </button>
+                        <button onClick={() => setView('home')} className="px-4 py-2 text-sm bg-white rounded-lg shadow-sm hover:bg-gray-50">Voltar</button>
+                        <button onClick={handleExportClick} className="px-4 py-2 text-sm text-white bg-green-600 rounded-lg shadow-sm hover:bg-green-700"><i className="fas fa-file-csv mr-2"></i> Exportar</button>
                     </div>
                 </header>
                 
@@ -1236,10 +724,10 @@
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
                         <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
                             <h3 className="text-lg font-bold mb-4">Exportação Personalizada</h3>
-                            <p className="mb-4 text-sm text-gray-600">Selecione as auditorias que deseja incluir no relatório. Use os filtros para refinar a busca.</p>
+                            <p className="mb-4 text-sm text-gray-600">Selecione as auditorias que deseja incluir no relatório.</p>
                             <div className="flex justify-end gap-4 mt-6">
-                                <button onClick={handleFinalExport} disabled={selectedAuditIds.length === 0} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400">Exportar {selectedAuditIds.length} Selecionada(s)</button>
-                                <button onClick={() => setShowExportModal(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">Cancelar</button>
+                                <button onClick={handleFinalExport} disabled={selectedAuditIds.length === 0} className="px-4 py-2 text-sm text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400">Exportar {selectedAuditIds.length} Selecionada(s)</button>
+                                <button onClick={() => setShowExportModal(false)} className="px-4 py-2 text-sm text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">Cancelar</button>
                             </div>
                         </div>
                     </div>
@@ -1261,125 +749,65 @@
                     </div>
                 </div>
 
-                {loadingData ? <div className="text-center p-10">Carregando histórico...</div> : error ? <div className="text-center p-10 text-red-500">{error}</div> : (
+                {loadingData ? <div className="text-center p-10">Carregando...</div> : error ? <div className="text-center p-10 text-red-500">{error}</div> : (
                     <div className="space-y-4">
-                        {/* Mobile View */}
                         <div className="md:hidden space-y-4">
                             {filteredAudits.length > 0 ? filteredAudits.map(audit => (
                                 <div key={audit.id} className="bg-white p-4 rounded-lg shadow space-y-3">
                                     <div className="flex items-center gap-3">
-                                        <input 
-                                            type="checkbox" 
-                                            className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                            checked={selectedAuditIds.includes(audit.id)}
-                                            onChange={() => handleAuditSelectionChange(audit.id)}
-                                        />
+                                        <input type="checkbox" className="h-5 w-5 rounded" checked={selectedAuditIds.includes(audit.id)} onChange={() => handleAuditSelectionChange(audit.id)} />
                                         <div>
-                                            <div className="font-bold text-gray-800">{audit.title}</div>
+                                            <div className="font-bold">{audit.title}</div>
                                             <div className="font-mono text-xs text-gray-500 break-all">{audit.id}</div>
-                                            {userData.role === 'admin' && <div className="text-sm text-gray-700">{audit.userFullName}</div>}
+                                            {userData.role === 'admin' && <div className="text-sm">{audit.userFullName}</div>}
                                         </div>
                                     </div>
                                     <div className="text-xs text-gray-600 mt-1">Apontamentos: {audit.entryCount || 0}</div>
-                                    
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <div className="text-xs text-gray-500">Hora de Início</div>
-                                            <div className="text-sm text-gray-900">{formatTimestamp(audit.createdAt) || 'N/A'}</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-xs text-gray-500">Hora de Conclusão</div>
-                                            <div className="text-sm text-gray-900">{audit.completedAt ? formatTimestamp(audit.completedAt) : 'Em andamento'}</div>
-                                        </div>
+                                        <div><div className="text-xs text-gray-500">Início</div><div className="text-sm">{formatTimestamp(audit.createdAt) || 'N/A'}</div></div>
+                                        <div><div className="text-xs text-gray-500">Conclusão</div><div className="text-sm">{audit.completedAt ? formatTimestamp(audit.completedAt) : 'Em andamento'}</div></div>
                                     </div>
-                                    <div>
-                                        <div className="text-xs text-gray-500">Status</div>
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${audit.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
-                                            {audit.status === 'pending' ? 'Pendente' : 'Concluída'}
-                                        </span>
-                                    </div>
+                                    <div><div className="text-xs text-gray-500">Status</div><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${audit.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>{audit.status === 'pending' ? 'Pendente' : 'Concluída'}</span></div>
                                     <div className="flex justify-end items-center gap-2 pt-2 border-t">
-                                        {audit.status === 'pending' ? (
-                                            <>
-                                                <button onClick={() => onContinue(audit.id)} className="px-3 py-1 text-xs font-medium rounded-md text-blue-800 bg-blue-100 hover:bg-blue-200">Continuar</button>
-                                                {(userData.role === 'admin' || userData.uid === audit.userId) && (
-                                                    <button onClick={() => handleStatusChange(audit.id, 'completed')} className="px-3 py-1 text-xs font-medium rounded-md text-green-800 bg-green-100 hover:bg-green-200">Concluir</button>
-                                                )}
-                                            </>
-                                        ) : (
-                                            <button onClick={() => onView(audit.id)} className="px-3 py-1 text-xs font-medium rounded-md text-indigo-800 bg-indigo-100 hover:bg-indigo-200">Visualizar</button>
-                                        )}
-                                        {(userData.role === 'admin' || (audit.userId === userData.uid && audit.status === 'pending')) && (
-                                            <button onClick={() => handleDeleteAudit(audit.id)} className="px-3 py-1 text-xs font-medium rounded-md text-red-800 bg-red-100 hover:bg-red-200">Apagar</button>
-                                        )}
-                                        <button onClick={() => exportToCSV([audit.id])} className="px-3 py-1 text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200">CSV</button>
+                                        {audit.status === 'pending' ? (<><button onClick={() => onContinue(audit.id)} className="px-3 py-1 text-xs rounded-md text-blue-800 bg-blue-100 hover:bg-blue-200">Continuar</button>{(userData.role === 'admin' || userData.uid === audit.userId) && (<button onClick={() => handleStatusChange(audit.id, 'completed')} className="px-3 py-1 text-xs rounded-md text-green-800 bg-green-100 hover:bg-green-200">Concluir</button>)}</>) : (<button onClick={() => onView(audit.id)} className="px-3 py-1 text-xs rounded-md text-indigo-800 bg-indigo-100 hover:bg-indigo-200">Visualizar</button>)}
+                                        {(userData.role === 'admin' || (audit.userId === userData.uid && audit.status === 'pending')) && (<button onClick={() => handleDeleteAudit(audit.id)} className="px-3 py-1 text-xs rounded-md text-red-800 bg-red-100 hover:bg-red-200">Apagar</button>)}
+                                        <button onClick={() => exportToCSV([audit.id])} className="px-3 py-1 text-xs rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200">CSV</button>
                                     </div>
                                 </div>
-                            )) : <div className="text-center py-10 text-gray-500">Nenhuma auditoria encontrada com os filtros atuais.</div>}
+                            )) : <div className="text-center py-10 text-gray-500">Nenhuma auditoria encontrada.</div>}
                         </div>
                         
-                        {/* Desktop View */}
                         <div className="hidden md:block bg-white rounded-xl shadow-lg overflow-hidden">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
                                         <th className="px-6 py-3"></th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Título / ID / Auditor</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Apontamentos</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora de Início</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hora de Conclusão</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase">Título / ID / Auditor</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase">Apont.</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase">Início</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase">Conclusão</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium uppercase">Status</th>
+                                        <th className="px-6 py-3 text-right text-xs font-medium uppercase">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {filteredAudits.length > 0 ? filteredAudits.map(audit => (
                                         <tr key={audit.id}>
-                                            <td className="px-6 py-4">
-                                                <input 
-                                                    type="checkbox" 
-                                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                                    checked={selectedAuditIds.includes(audit.id)}
-                                                    onChange={() => handleAuditSelectionChange(audit.id)}
-                                                />
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                <div className="font-bold text-gray-900">{audit.title}</div>
-                                                <div className="font-mono text-gray-600 text-xs">{audit.id}</div>
-                                                {userData.role === 'admin' && <div className="text-xs text-gray-500 mt-1">{audit.userFullName}</div>}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <div className="text-sm text-gray-900">{audit.entryCount || 0}</div>
-                                            </td>
+                                            <td className="px-6 py-4"><input type="checkbox" className="h-4 w-4 rounded" checked={selectedAuditIds.includes(audit.id)} onChange={() => handleAuditSelectionChange(audit.id)} /></td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm"><div className="font-bold">{audit.title}</div><div className="font-mono text-gray-600 text-xs">{audit.id}</div>{userData.role === 'admin' && <div className="text-xs text-gray-500 mt-1">{audit.userFullName}</div>}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm"><div className="text-sm">{audit.entryCount || 0}</div></td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatTimestamp(audit.createdAt) || 'N/A'}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{audit.completedAt ? formatTimestamp(audit.completedAt) : 'Em andamento'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${audit.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
-                                                {audit.status === 'pending' ? 'Pendente' : 'Concluída'}
-                                            </span>
-                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${audit.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>{audit.status === 'pending' ? 'Pendente' : 'Concluída'}</span></td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <div className="flex justify-end items-center gap-2">
-                                                    {audit.status === 'pending' ? (
-                                                        <>
-                                                            <button onClick={() => onContinue(audit.id)} className="px-3 py-1 text-xs font-medium rounded-md text-blue-800 bg-blue-100 hover:bg-blue-200">Continuar</button>
-                                                            {(userData.role === 'admin' || userData.uid === audit.userId) && (
-                                                                <button onClick={() => handleStatusChange(audit.id, 'completed')} className="px-3 py-1 text-xs font-medium rounded-md text-green-800 bg-green-100 hover:bg-green-200">Concluir</button>
-                                                            )}
-                                                        </>
-                                                    ) : (
-                                                        <button onClick={() => onView(audit.id)} className="px-3 py-1 text-xs font-medium rounded-md text-indigo-800 bg-indigo-100 hover:bg-indigo-200">Visualizar</button>
-                                                    )}
-                                                     {(userData.role === 'admin' || (audit.userId === userData.uid && audit.status === 'pending')) && (
-                                                        <button onClick={() => handleDeleteAudit(audit.id)} className="px-3 py-1 text-xs font-medium rounded-md text-red-800 bg-red-100 hover:bg-red-200">Apagar</button>
-                                                    )}
-                                                    <button onClick={() => exportToCSV([audit.id])} className="px-3 py-1 text-xs font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200" title="Exportar esta auditoria para CSV">CSV</button>
+                                                    {audit.status === 'pending' ? (<><button onClick={() => onContinue(audit.id)} className="px-3 py-1 text-xs rounded-md text-blue-800 bg-blue-100 hover:bg-blue-200">Continuar</button>{(userData.role === 'admin' || userData.uid === audit.userId) && (<button onClick={() => handleStatusChange(audit.id, 'completed')} className="px-3 py-1 text-xs rounded-md text-green-800 bg-green-100 hover:bg-green-200">Concluir</button>)}</>) : (<button onClick={() => onView(audit.id)} className="px-3 py-1 text-xs rounded-md text-indigo-800 bg-indigo-100 hover:bg-indigo-200">Visualizar</button>)}
+                                                    {(userData.role === 'admin' || (audit.userId === userData.uid && audit.status === 'pending')) && (<button onClick={() => handleDeleteAudit(audit.id)} className="px-3 py-1 text-xs rounded-md text-red-800 bg-red-100 hover:bg-red-200">Apagar</button>)}
+                                                    <button onClick={() => exportToCSV([audit.id])} className="px-3 py-1 text-xs rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200" title="Exportar para CSV">CSV</button>
                                                 </div>
                                             </td>
                                         </tr>
-                                    )) : (
-                                        <tr><td colSpan="7" className="text-center py-10 text-gray-500">Nenhuma auditoria encontrada com os filtros atuais.</td></tr>
-                                    )}
+                                    )) : ( <tr><td colSpan="7" className="text-center py-10 text-gray-500">Nenhuma auditoria encontrada.</td></tr> )}
                                 </tbody>
                             </table>
                         </div>
@@ -1396,241 +824,13 @@
         const [errorData, setErrorData] = React.useState('');
         const [selectedImage, setSelectedImage] = React.useState(null);
         const [confirmAction, setConfirmAction] = React.useState(null);
-
-        const formatTimestamp = (timestamp) => {
-            if (!timestamp) return null;
-            // Can be a Firestore Timestamp or a JS Date object
-            const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
-            return date.toLocaleString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        };
-
-        React.useEffect(() => {
-            if (!auditId) {
-                setErrorData("Nenhuma auditoria selecionada.");
-                setLoadingData(false);
-                return;
-            }
-            const fetchAuditData = async () => {
-                try {
-                    const auditDoc = await getDoc(doc(db, "audits", auditId));
-                    if (auditDoc.exists()) {
-                        setAudit(auditDoc.data());
-                    } else {
-                        throw new Error("Auditoria não encontrada.");
-                    }
-
-                    const entriesSnapshot = await getDocs(collection(db, "audits", auditId, "entries"));
-                    const entriesData = entriesSnapshot.docs.map(d => d.data());
-                    entriesData.sort((a,b) => a.entryNumber - b.entryNumber);
-                    setEntries(entriesData);
-                } catch (e) {
-                    console.error("Erro ao carregar auditoria para visualização:", e);
-                    setErrorData(e.message);
-                } finally {
-                    setLoadingData(false);
-                }
-            };
-            fetchAuditData();
-        }, [auditId]);
-
-        const handleDeleteAudit = async () => {
-            setConfirmAction({
-                message: "Tem certeza que deseja apagar esta auditoria permanentemente? Esta ação não pode ser desfeita.",
-                color: 'red',
-                onConfirm: async () => {
-                    setLoading(true);
-                    setConfirmAction(null);
-                    try {
-                        const entriesRef = collection(db, "audits", auditId, "entries");
-                        const entriesSnapshot = await getDocs(entriesRef);
-                        const deleteBatch = writeBatch(db);
-                        entriesSnapshot.forEach(doc => {
-                            deleteBatch.delete(doc.ref);
-                        });
-                        
-                        deleteBatch.delete(doc(db, "audits", auditId));
-
-                        await deleteBatch.commit();
-
-                        notify("Auditoria apagada com sucesso!", "success");
-                        setView('history');
-                    } catch (err) {
-                        console.error("Erro ao apagar auditoria:", err);
-                        notify("Falha ao apagar a auditoria. Tente novamente.", "error");
-                    } finally {
-                        setLoading(false);
-                    }
-                }
-            });
-        };
-        
-        const exportToCSV = async (auditIdToExport) => {
-            if (!auditIdToExport) {
-                notify("ID da auditoria não encontrado.", "error");
-                return;
-            }
-
-            setLoading(true);
-            try {
-                let entriesToExport = [];
-                let fileName = `auditoria_${auditIdToExport}.csv`;
-
-                const auditDoc = await getDoc(doc(db, "audits", auditIdToExport));
-                if (!auditDoc.exists()) {
-                    notify("Auditoria não encontrada.", "error");
-                    setLoading(false);
-                    return;
-                }
-                const auditData = auditDoc.data();
-
-                const entriesSnapshot = await getDocs(collection(db, "audits", auditIdToExport, "entries"));
-                entriesSnapshot.forEach(entryDoc => {
-                    entriesToExport.push({ 
-                        ...entryDoc.data(), 
-                        userFullName: auditData.userFullName,
-                        auditTitle: auditData.title
-                    });
-                });
-
-                if (entriesToExport.length === 0) {
-                    notify("Nenhum apontamento encontrado para exportar.", "warning");
-                    setLoading(false);
-                    return;
-                }
-
-                const headers = "Titulo_Auditoria,Numero_Apontamento,Auditor,Data_Hora_Apontamento,Zona_Operacional,Setor_Tecnico,Setor_Responsavel,Orgao_Anuente_Auditado,Local,Descricao_Apontamento,Complemento,Evidencia_1,Evidencia_2,Evidencia_3";
-                const csvRows = [headers];
-
-                entriesToExport.sort((a, b) => a.entryNumber - b.entryNumber).forEach(entry => {
-                    const evidenceUrls = Object.values(entry.evidenceUrls || {});
-                    const row = [
-                        `"${entry.auditTitle || ''}"`,
-                        entry.entryNumber,
-                        `"${entry.userFullName || ''}"`,
-                        `"${formatTimestamp(entry.entryTimestamp) || 'N/A'}"`,
-                        `"${entry.operationalZone || ''}"`,
-                        `"${entry.technicalSector || ''}"`,
-                        `"${entry.responsibleSector || ''}"`,
-                        `"${entry.auditedEntity || ''}"`,
-                        `"${entry.location || ''}"`,
-                        `"${(entry.description || '').replace(/"/g, '""')}"`,
-                        `"${(entry.complement || '').replace(/"/g, '""')}"`,
-                        // New image URL format
-                        evidenceUrls[0] ? `https://drive.google.com/uc?id=${evidenceUrls[0]}` : '',
-                        evidenceUrls[1] ? `https://drive.google.com/uc?id=${evidenceUrls[1]}` : '',
-                        evidenceUrls[2] ? `https://drive.google.com/uc?id=${evidenceUrls[2]}` : '',
-                    ];
-                    csvRows.push(row.join(','));
-                });
-
-                const csvString = csvRows.join('\n');
-                const blob = new Blob([`\uFEFF${csvString}`], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement("a");
-                const url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", fileName);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                notify("Exportação concluída!", "success");
-
-            } catch (err) {
-                console.error("Erro ao exportar CSV:", err);
-                notify("Falha ao exportar CSV.", "error");
-            } finally {
-                setLoading(false);
-            }
-        };
-
+        const formatTimestamp = (timestamp) => { if (!timestamp) return null; const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp); return date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); };
+        React.useEffect(() => { if (!auditId) { setErrorData("Nenhuma auditoria selecionada."); setLoadingData(false); return; } const fetchAuditData = async () => { try { const auditDoc = await getDoc(doc(db, "audits", auditId)); if (auditDoc.exists()) { setAudit(auditDoc.data()); } else { throw new Error("Auditoria não encontrada."); } const entriesSnapshot = await getDocs(collection(db, "audits", auditId, "entries")); const entriesData = entriesSnapshot.docs.map(d => d.data()).sort((a,b) => a.entryNumber - b.entryNumber); setEntries(entriesData); } catch (e) { setErrorData(e.message); } finally { setLoadingData(false); } }; fetchAuditData(); }, [auditId]);
+        const handleDeleteAudit = () => setConfirmAction({ message: "Apagar permanentemente?", color: 'red', onConfirm: async () => { setLoading(true); setConfirmAction(null); try { const entriesRef = collection(db, "audits", auditId, "entries"); const entriesSnapshot = await getDocs(entriesRef); const deleteBatch = writeBatch(db); entriesSnapshot.forEach(d => deleteBatch.delete(d.ref)); deleteBatch.delete(doc(db, "audits", auditId)); await batch.commit(); notify("Auditoria apagada!", "success"); setView('history'); } catch (err) { notify("Falha ao apagar.", "error"); } finally { setLoading(false); } } });
         if (loadingData) return <div className="flex justify-center items-center h-screen"><div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div></div>;
         if (errorData) return <div className="p-8 text-center text-red-500">{errorData}</div>;
-
-        return (
-            <div className="p-4 md:p-8 max-w-4xl mx-auto">
-                <ConfirmationModal action={confirmAction} onCancel={() => setConfirmAction(null)} />
-                <header className="flex justify-between items-start mb-6">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-800">{audit?.title || 'Visualizar Auditoria'}</h1>
-                        <p className="text-sm text-gray-500 font-mono">{auditId}</p>
-                    </div>
-                    <button onClick={() => setView('history')} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white rounded-lg shadow-sm hover:bg-gray-50">Voltar ao Histórico</button>
-                </header>
-                <div className="space-y-6">
-                    {entries.map((entry, index) => (
-                        <div key={index} className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-indigo-500">
-                            <h3 className="text-lg font-semibold text-gray-700 mb-4">Apontamento #{entry.entryNumber}</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                <div className="bg-gray-50 p-3 rounded-lg"><strong>Órgão:</strong> {entry.auditedEntity}</div>
-                                <div className="bg-gray-50 p-3 rounded-lg"><strong>Setor Responsável:</strong> {entry.responsibleSector}</div>
-                                <div className="bg-gray-50 p-3 rounded-lg"><strong>Setor Técnico:</strong> {entry.technicalSector}</div>
-                                <div className="bg-gray-50 p-3 rounded-lg"><strong>Zona:</strong> {entry.operationalZone}</div>
-                                <div className="bg-gray-50 p-3 rounded-lg md:col-span-2"><strong>Local:</strong> {entry.location}</div>
-                                <div className="bg-gray-50 p-3 rounded-lg md:col-span-2">
-                                    <strong className="block mb-1">Apontamento:</strong>
-                                    <p className="uppercase font-mono whitespace-pre-wrap">{entry.description}</p>
-                                </div>
-                                {entry.complement && (
-                                    <div className="bg-gray-50 p-3 rounded-lg md:col-span-2">
-                                        <strong className="block mb-1">Complemento:</strong>
-                                        <p className="whitespace-pre-wrap">{entry.complement}</p>
-                                    </div>
-                                )}
-                                <div className="md:col-span-2">
-                                    <strong className="block mb-2">Evidências:</strong>
-                                    <div className="flex flex-wrap gap-4">
-                                        {entry.evidenceUrls && Object.keys(entry.evidenceUrls).length > 0 ? Object.values(entry.evidenceUrls).map((fileId, evIndex) => (
-                                            <button key={evIndex} onClick={() => setSelectedImage(`https://drive.google.com/thumbnail?id=${fileId}&sz=w1280`)}>
-                                                <img src={`https://drive.google.com/thumbnail?id=${fileId}&sz=s220`} alt={`Evidência ${evIndex + 1}`} className="w-32 h-32 object-cover rounded-lg shadow-md hover:scale-105 transition-transform cursor-pointer" />
-                                            </button>
-                                        )) : <p className="text-gray-500">Nenhuma evidência fotográfica.</p>}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="mt-8 flex justify-end gap-4">
-                    <button onClick={() => exportToCSV(auditId)} className="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors">
-                        <i className="fas fa-file-csv mr-2"></i> Exportar CSV
-                    </button>
-                    {audit && (userData.role === 'admin' || (audit.userId === userData.uid && audit.status === 'pending')) && (
-                        <button onClick={handleDeleteAudit} className="px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors">
-                            <i className="fas fa-trash-alt mr-2"></i> Apagar Auditoria
-                        </button>
-                    )}
-                </div>
-
-
-                {selectedImage && (
-                    <div 
-                        className="fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-50"
-                        onClick={() => setSelectedImage(null)}
-                    >
-                        <div className="relative max-w-4xl max-h-4/5 p-4" onClick={(e) => e.stopPropagation()}>
-                             <button 
-                                onClick={() => setSelectedImage(null)}
-                                className="absolute -top-2 -right-2 m-4 text-white text-4xl font-bold hover:text-gray-300"
-                            >
-                                &times;
-                            </button>
-                            <img 
-                                src={selectedImage} 
-                                alt="Evidência em tamanho ampliado" 
-                                className="max-w-full max-h-[80vh] object-contain rounded-lg" 
-                            />
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    }
+        return ( <div className="p-4 md:p-8 max-w-4xl mx-auto"> <ConfirmationModal action={confirmAction} onCancel={() => setConfirmAction(null)} /> <header className="flex justify-between items-start mb-6"> <div> <h1 className="text-2xl font-bold">{audit?.title || 'Visualizar Auditoria'}</h1> <p className="text-sm text-gray-500 font-mono">{auditId}</p> </div> <button onClick={() => setView('history')} className="px-4 py-2 text-sm bg-white rounded-lg shadow-sm hover:bg-gray-50">Voltar</button> </header> <div className="space-y-6"> {entries.map((entry, index) => ( <div key={index} className="bg-white p-6 rounded-xl shadow-lg border-l-4 border-indigo-500"> <h3 className="text-lg font-semibold mb-4">Apontamento #{entry.entryNumber}</h3> <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm"> <div className="bg-gray-50 p-3 rounded-lg"><strong>Órgão:</strong> {entry.auditedEntity}</div> <div className="bg-gray-50 p-3 rounded-lg"><strong>Setor Responsável:</strong> {entry.responsibleSector}</div> <div className="bg-gray-50 p-3 rounded-lg"><strong>Setor Técnico:</strong> {entry.technicalSector}</div> <div className="bg-gray-50 p-3 rounded-lg"><strong>Zona:</strong> {entry.operationalZone}</div> <div className="bg-gray-50 p-3 rounded-lg md:col-span-2"><strong>Local:</strong> {entry.location}</div> <div className="bg-gray-50 p-3 rounded-lg md:col-span-2"><strong className="block mb-1">Apontamento:</strong><p className="uppercase font-mono whitespace-pre-wrap">{entry.description}</p></div> {entry.complement && (<div className="bg-gray-50 p-3 rounded-lg md:col-span-2"><strong className="block mb-1">Complemento:</strong><p className="whitespace-pre-wrap">{entry.complement}</p></div>)} <div className="md:col-span-2"><strong className="block mb-2">Evidências:</strong><div className="flex flex-wrap gap-4">{entry.evidenceUrls && Object.keys(entry.evidenceUrls).length > 0 ? Object.values(entry.evidenceUrls).map((fileId, evIndex) => (<button key={evIndex} onClick={() => setSelectedImage(`https://drive.google.com/thumbnail?id=${fileId}&sz=w1280`)}><img src={`https://drive.google.com/thumbnail?id=${fileId}&sz=s220`} alt={`Evidência ${evIndex + 1}`} className="w-32 h-32 object-cover rounded-lg shadow-md hover:scale-105" /></button>)) : <p className="text-gray-500">Nenhuma evidência.</p>}</div></div> </div> </div> ))} </div> <div className="mt-8 flex justify-end gap-4"> {audit && (userData.role === 'admin' || (audit.userId === userData.uid && audit.status === 'pending')) && (<button onClick={handleDeleteAudit} className="px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700"><i className="fas fa-trash-alt mr-2"></i> Apagar</button>)} </div> {selectedImage && (<div className="fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-50" onClick={() => setSelectedImage(null)}><div className="relative max-w-4xl max-h-4/5 p-4" onClick={(e) => e.stopPropagation()}><button onClick={() => setSelectedImage(null)} className="absolute -top-2 -right-2 m-4 text-white text-4xl">&times;</button><img src={selectedImage} alt="Evidência ampliada" className="max-w-full max-h-[80vh] object-contain rounded-lg" /></div></div>)} </div> );
+      }
       
       const container = document.getElementById('root');
       const root = ReactDOM.createRoot(container);
