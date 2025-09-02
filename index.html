@@ -141,14 +141,14 @@
           'PERIMETRAL_SENSOR': { name: 'Auditoria Perimetral – Sensor', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_SEG_PATRIMONIAL_PERIMETRAL_SENSOR', locationsMapId: 'LOCAIS_POR_ZONA_SEG_PATRIMONIAL_PERIMETRAL_SENSOR', predefinedPointsConfig: { type: 'simple', collectionId: 'APONTAMENTOS_SENSOR' }}},
           'CFTV': { name: 'Auditoria – CFTV', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_GERAL', locationsMapId: 'LOCAIS_POR_ZONA_GERAL', predefinedPointsConfig: { type: 'simple', collectionId: 'APONTAMENTOS_CFTV' }}},
           'ACESS_CONTROL': { name: 'Auditoria – Controle de Acesso', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_SEG_PATRIMONIAL_CONTROLE_DE_ACESSO', locationsMapId: 'LOCAIS_POR_ZONA_SEG_PATRIMONIAL_CONTROLE_DE_ACESSO', predefinedPointsConfig: { type: 'simple', collectionId: 'APONTAMENTOS_CONTROLE_ACESSO' }}},
-          'CONFORMIDADE': { name: 'Conformidade', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_GERAL', locationsMapId: 'LOCAIS_POR_ZONA_GERAL', predefinedPointsConfig: { type: 'byAuditedEntity', collectionId: 'APONTAMENTOS_CONFORMIDADE_POR_ORGAO' }}}
+          'CONFORMIDADE': { name: 'CONFORMIDADE', config: { auditedEntitiesId: 'ORGAOS_ANUENTES_PADRAO', responsibleSectorsId: 'SETORES_RESPONSAVEIS_GERAL', zonesId: 'ZONAS_OPERACIONAIS_GERAL', locationsMapId: 'LOCAIS_POR_ZONA_GERAL', predefinedPointsConfig: { type: 'byAuditedEntity', collectionId: 'APONTAMENTOS_CONFORMIDADE_POR_ORGAO' }}}
         },
 
         SECTOR_CONFIG: {
-          'CONFORMIDADE': { auditTypeIds: ['GERAL', 'CONFORMIDADE'] },
+          'CONFORMIDADE': { auditTypeIds: ['CONFORMIDADE'] },
           'SESMT': { auditTypeIds: ['GERAL'] },
           'CONSULTORIA': { auditTypeIds: ['GERAL'] },
-          'SEGURANÇA PATRIMONIAL':{ auditTypeIds: ['GERAL', 'CONFORMIDADE', 'SIRENE', 'PERIMETRAL_SENSOR', 'CFTV', 'ACESS_CONTROL'] },
+          'SEGURANÇA PATRIMONIAL':{ auditTypeIds: ['GERAL', 'SIRENE', 'PERIMETRAL_SENSOR', 'CFTV', 'ACESS_CONTROL'] },
           'DEFAULT': { auditTypeIds: ['GERAL'] }
         }
       };
