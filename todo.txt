@@ -1,0 +1,107 @@
+Plano de Melhorias para o App de Auditoria
+
+1. Campos Adicionais nos Apontamentos
+- Objetivo: Garantir que cada apontamento tenha informações detalhadas que ajudem na avaliação e no direcionamento de ações.
+
+Ações:
+- Adicionar os seguintes campos ao formulário de registro de apontamento:
+  - Campo de Pontuação: Avaliação quantitativa do apontamento (ex: 1 a 5 ou 1 a 10).
+  - Campo de Sugestão de Melhoria: Instrução prática para o setor auditado melhorar o processo.
+  - Campo de Consequência do Apontamento: Explicar o impacto de não corrigir a não conformidade.
+
+---
+
+2. Fluxo de Direcionamento Automático
+- Objetivo: Tornar o processo de direcionamento de apontamentos mais eficiente e evitar erros humanos.
+
+Ações:
+- Direcionamento Automático: Ao registrar o apontamento, o sistema deve automaticamente direcioná-lo para o gestor do setor auditado.
+- Visibilidade Completa: O gestor deve ter acesso a todos os dados do apontamento, incluindo:
+  - Apontamento
+  - Norma aplicável
+  - Sugestão de melhoria
+  - Consequência
+  - Evidências anexadas.
+- Redirecionamento:
+  - Caso o apontamento não seja de responsabilidade do gestor, ele deve poder redirecioná-lo para o setor correto com um campo para justificativa.
+  - O auditor e o novo responsável devem ser notificados por e-mail quando houver redirecionamento.
+
+---
+
+3. Gestão de Prazos e Notificações
+- Objetivo: Melhorar o controle sobre os prazos e aumentar a eficácia na resolução dos apontamentos.
+
+Ações:
+- Definição de Prazos: Cada apontamento deve ter um prazo de atendimento definido no momento da criação.
+- Alertas Automáticos: O sistema deve enviar notificações por e-mail quando:
+  - O prazo estiver se aproximando.
+  - O prazo estiver vencido.
+- Relatório de Prazos: Possibilitar a visualização de apontamentos pendentes, próximos de vencer ou atrasados, em um painel de fácil acesso.
+
+---
+
+4. Conclusão e Comprovação
+- Objetivo: Garantir que os apontamentos sejam devidamente concluídos e validados, e que as evidências sejam adequadas.
+
+Ações:
+- Opção de Concluir: O setor auditado deve marcar o apontamento como concluído e anexar evidências (ex: arquivos ou fotos).
+- Validação: O auditor deve revisar as evidências e validar a conclusão:
+  - Se aprovado, a conclusão é confirmada.
+  - Se rejeitado, o auditor deve poder justificar o motivo da rejeição, e o responsável será notificado por e-mail sobre a rejeição.
+
+---
+
+5. Centralização das Informações
+- Objetivo: Centralizar todos os apontamentos em um painel de fácil visualização e acesso.
+
+Ações:
+- Painel de Status: Exibir todos os apontamentos em um painel com o status de cada um:
+  - Aberto
+  - Em análise
+  - Redirecionado
+  - Concluído
+  - Pendente de validação
+- Relatórios Consolidados: Permitir filtrar relatórios por:
+  - Setor
+  - Criticidade
+  - Status
+  - Responsável
+  - Prazo
+
+---
+
+6. Funcionalidades Adicionais Sugeridas
+- Objetivo: Adicionar recursos extras para aumentar a rastreabilidade e a análise do desempenho do processo.
+
+Ações:
+- Histórico de Alterações: Adicionar uma seção para rastrear as modificações de cada apontamento, registrando quem alterou, quando e o que foi modificado.
+- Indicadores Automáticos:
+  - Percentual de apontamentos concluídos no prazo.
+  - Percentual de reincidências.
+  - Tempo médio de atendimento.
+- Dashboard Gráfico: Criar uma dashboard gráfica para visualização gerencial que inclua métricas de evolução das auditorias, como:
+  - Apontamentos por status
+  - Apontamentos concluídos dentro do prazo
+  - Tabelas e gráficos com indicadores de performance.
+
+---
+
+7. Planejamento de Implementação
+- Fase 1 – Levantamento de Requisitos:
+  - Realizar um levantamento de requisitos detalhado com stakeholders para garantir que todos os campos e fluxos estejam de acordo com as necessidades operacionais.
+  
+- Fase 2 – Design e Arquitetura:
+  - Criar o design das interfaces do usuário, considerando a usabilidade do sistema e a simplicidade para os gestores e auditores.
+  - Definir a arquitetura do banco de dados para armazenar os novos campos e histórico de alterações.
+
+- Fase 3 – Desenvolvimento e Testes:
+  - Desenvolver as funcionalidades mencionadas, começando com a implementação do fluxo de direcionamento automático, campos adicionais nos apontamentos e gestão de prazos.
+  - Realizar testes unitários e testes de integração.
+
+- Fase 4 – Implementação Gradual e Treinamento:
+  - Lançamento em fases, começando por uma área piloto (ex: um setor ou equipe específica) para validação das novas funcionalidades.
+  - Oferecer treinamento aos usuários do sistema para garantir a boa adoção.
+
+- Fase 5 – Acompanhamento e Ajustes:
+  - Monitorar a implementação e ajustar funcionalidades conforme feedback dos usuários.
+  - Garantir que as notificações, prazos e fluxos automáticos estejam funcionando corretamente.
